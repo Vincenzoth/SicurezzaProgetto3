@@ -18,7 +18,6 @@ public class User implements Serializable {
 		this.salt = salt;	
 		this.info = info;
 	}
-
 	public String getID() {
 		return ID;
 	}
