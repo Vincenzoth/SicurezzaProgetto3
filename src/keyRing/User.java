@@ -12,7 +12,6 @@ public class User implements Serializable {
 	private byte[] salt;
 	private SealedObject info;
 
-
 	public User(String ID, byte[] salt, SealedObject info) {
 		this.ID = ID;
 		this.salt = salt;	
