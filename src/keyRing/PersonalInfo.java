@@ -9,31 +9,26 @@ import javax.crypto.SecretKey;
 public class PersonalInfo implements Serializable{
 	private static final long serialVersionUID = 2L;
 
-	private PrivateKey privKeyCod;
-	private PrivateKey privKeyVer;
+	private HashMap<String, PrivateKey> privKeyCod;
+	private HashMap<String, PrivateKey> privKeyVer;
 	private HashMap<String, String> sitesPasswords;
 	private HashMap<String, SecretKey> simmetricKeys;
 
 	
 	public PersonalInfo() {
+		this.privKeyCod = new HashMap<String,PrivateKey>();
+		this.privKeyVer = new HashMap<String,PrivateKey>();
 		this.sitesPasswords = new HashMap<String,String>();
 		this.simmetricKeys = new HashMap<String, SecretKey>();
 	}
 	
-	
-	public PrivateKey getPrivKeyCod() {
+	public HashMap<String,PrivateKey> getPrivKeyCod() {
 		return privKeyCod;
 	}
-	public void setPrivKeyCod(PrivateKey privKeyCod) {
-		this.privKeyCod = privKeyCod;
-	}
-	public PrivateKey getPrivKeyVer() {
+	
+	public HashMap<String,PrivateKey> getPrivKeyVer() {
 		return privKeyVer;
 	}
-	public void setPrivKeyVer(PrivateKey privKeyVer) {
-		this.privKeyVer = privKeyVer;
-	}
-	
 	public HashMap<String, String> getSitesPasswords() {
 		return this.sitesPasswords;
 	}

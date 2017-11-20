@@ -11,6 +11,7 @@ import java.io.ObjectOutputStream;
 import java.nio.file.Paths;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
 import java.security.SecureRandom;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
@@ -35,7 +36,6 @@ public class KeyRing {
 	private Cipher cipher;
 	private PersonalInfo pi = null;
 	private String ID;
-	private String password;
 	private SecretKey key;
 	private HashMap<String,User> keys;
 
@@ -77,7 +77,7 @@ public class KeyRing {
 	public KeyRing (String ID, String password) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeySpecException, FileNotFoundException, IOException, ClassNotFoundException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException {
 		this.cipher = Cipher.getInstance(CIPHER);
 		this.ID = ID;
-		this.password = password;
+		
 		
 		// inizializza mappa
 		keys = new HashMap<String,User>();
@@ -285,5 +285,55 @@ public class KeyRing {
 	
 	public SecretKey removeSimmetricKey(String IdKey) {
 		return pi.getSimmetricKeys().remove(IdKey);
+	}
+	
+	
+	public PrivateKey addPrivateKeyCod(String IdKey, PrivateKey key) throws InvalidKeyException, IllegalBlockSizeException, IOException {
+		PrivateKey returnValue = pi.getPrivKeyCod().put(IdKey, key);
+		
+		updateFile();
+		
+		return returnValue;
+	}
+	
+	public PrivateKey updatePrivateKeyCod(String IdKey, PrivateKey newKey) throws InvalidKeyException, IllegalBlockSizeException, IOException {
+		PrivateKey returnValue = pi.getPrivKeyCod().replace(IdKey, newKey);
+		
+		updateFile();
+		
+		return returnValue;
+	}
+	
+	public PrivateKey getPrivateKeyCod(String IdKey) {
+		return pi.getPrivKeyCod().get(IdKey);
+	}
+	
+	public PrivateKey removePrivateKeyCod(String IdKey) {
+		return pi.getPrivKeyCod().remove(IdKey);
+	}
+	
+	
+	public PrivateKey addPrivateKeyVer(String IdKey, PrivateKey key) throws InvalidKeyException, IllegalBlockSizeException, IOException {
+		PrivateKey returnValue = pi.getPrivKeyVer().put(IdKey, key);
+		
+		updateFile();
+		
+		return returnValue;
+	}
+	
+	public PrivateKey updatePrivateKeyVer(String IdKey, PrivateKey newKey) throws InvalidKeyException, IllegalBlockSizeException, IOException {
+		PrivateKey returnValue = pi.getPrivKeyVer().replace(IdKey, newKey);
+		
+		updateFile();
+		
+		return returnValue;
+	}
+	
+	public PrivateKey getPrivateKeyVer(String IdKey) {
+		return pi.getPrivKeyVer().get(IdKey);
+	}
+	
+	public PrivateKey removePrivateKeyVer(String IdKey) {
+		return pi.getPrivKeyVer().remove(IdKey);
 	}
 }
