@@ -10,6 +10,7 @@ import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
+import java.security.SecureRandom;
 import java.security.Signature;
 import java.security.SignatureException;
 import java.sql.Timestamp;
@@ -19,30 +20,41 @@ import java.util.ArrayList;
 public class TSA {
 	final static String PATH = Paths.get(System.getProperty("user.dir")).toString();
 	final static String FILE_NAME = PATH + "/data/rootHashValues";
+	final static int TREE_ELEM = 8;
+	final static String DUMMY_HASH_ALG = "SHA-1";
 
 	private long serialNumber;
 	private Signature sig;
 	// fai un bel Arraylist co sti cosi
-	private byte[] h_12;
-	private byte[] h_34;
-	private byte[] h_56;
-	private byte[] h_78;
-	private byte[] h_14;
-	private byte[] h_58;
-	private byte[] h_18;
+	private ArrayList<byte[]> hashTreeValues;
+	//   | h_12 | h_34 | h_56 | h_78 | h_14 | h_58 | h_18 |
+
 
 	public TSA(PrivateKey keySig) throws NoSuchAlgorithmException, InvalidKeyException {
 		serialNumber = 0;
 		sig = Signature.getInstance("SHA1withDSA");
 		sig.initSign(keySig);
+
+		hashTreeValues = new ArrayList<byte[]>();
 	}
 
 	public ArrayList<Marca> metodo(ArrayList<Richiesta> requests) throws NoSuchAlgorithmException, SignatureException, IOException{
+		//IN REALTA' LE RICHIESTE DEVONO ARRIVARE CIFRATE
+		
 		ArrayList<Marca> marche = new ArrayList<Marca>();
 		ArrayList<TempBox> linkedInformation = new ArrayList<TempBox>();
 
 		// FAI REQUEST MULTIPLA DI 8 CON PADDING FITTIZZZI 
 		// genera a caso un array di byte di grandezza corretta
+		int remain = requests.size() % TREE_ELEM;
+
+		if(remain != 0) {
+			// aggiungi nodi fittizi
+			for(int i = remain; i < TREE_ELEM; i++) {
+				byte [] dummyHash = getDummyHash();
+				requests.add(new Richiesta("defUser", dummyHash));
+			}
+		}
 
 		ArrayList<ArrayList<Richiesta>> splittedRequest = new ArrayList<ArrayList<Richiesta>>();
 
@@ -71,25 +83,26 @@ public class TSA {
 					linkedInformation.add(new TempBox(r.get(i-1).getH(), false));
 				}
 				if(i<4) {
-					//add h58
 					if(i<2) {
-						linkedInformation.add(new TempBox(h_34, true));
+						//add 34
+						linkedInformation.add(new TempBox(hashTreeValues.get(1), true));
 					}else {
-						linkedInformation.add(new TempBox(h_12, false));
 						//add 12
+						linkedInformation.add(new TempBox(hashTreeValues.get(0), false));
 					}
-					linkedInformation.add(new TempBox(h_58, true));
+					//add h58
+					linkedInformation.add(new TempBox(hashTreeValues.get(5), true));
 
 				} else {
-					//add 14
 					if(i<6) {
 						//add 78
-						linkedInformation.add(new TempBox(h_78, true));
+						linkedInformation.add(new TempBox(hashTreeValues.get(3), true));
 					}else {
 						//add 56
-						linkedInformation.add(new TempBox(h_56, true));
+						linkedInformation.add(new TempBox(hashTreeValues.get(2), true));
 					}
-					linkedInformation.add(new TempBox(h_14, false));
+					//add 14
+					linkedInformation.add(new TempBox(hashTreeValues.get(4), false));
 				}
 
 				marche.add(new Marca(r.get(i).getIdUser(), serialNumber++, time, r.get(i).getH(), sig.sign(), linkedInformation));
@@ -102,6 +115,17 @@ public class TSA {
 
 	}
 
+	private byte[] getDummyHash() throws NoSuchAlgorithmException {
+		// oppure genero direttamente un array di byte casuali?
+		SecureRandom random = new SecureRandom();
+		byte inputBytes[] = new byte[1024];
+		random.nextBytes(inputBytes);
+
+		MessageDigest digest = MessageDigest.getInstance(DUMMY_HASH_ALG);
+
+		return digest.digest(inputBytes);
+	}
+
 	private byte[] longToBytes(long n) {
 		ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
 		buffer.putLong(n);
@@ -111,28 +135,21 @@ public class TSA {
 	private byte[] computeTree(ArrayList<Richiesta> requests) throws NoSuchAlgorithmException {
 		MessageDigest md = MessageDigest.getInstance("SHA-256");
 
-		md.update(concatenate(requests.get(0).getH(), requests.get(1).getH()));
-		h_12 = md.digest();
+		for(int i = 0; i < TREE_ELEM; i+=2) {
+			md.update(concatenate(requests.get(i).getH(), requests.get(i+1).getH()));
+			hashTreeValues.add(md.digest());
+		}
 
-		md.update(concatenate(requests.get(2).getH(), requests.get(3).getH()));
-		h_34 = md.digest();
+		md.update(concatenate(hashTreeValues.get(0), hashTreeValues.get(1)));
+		hashTreeValues.add(md.digest());
 
-		md.update(concatenate(requests.get(4).getH(), requests.get(5).getH()));
-		h_56 = md.digest();
+		md.update(concatenate(hashTreeValues.get(2), hashTreeValues.get(3)));
+		hashTreeValues.add(md.digest());
 
-		md.update(concatenate(requests.get(6).getH(), requests.get(7).getH()));
-		h_78 = md.digest();
+		md.update(concatenate(hashTreeValues.get(4), hashTreeValues.get(5)));
+		hashTreeValues.add(md.digest());// Root Hash Value
 
-		md.update(concatenate(h_12, h_34));
-		h_14 = md.digest();
-
-		md.update(concatenate(h_56, h_78));
-		h_58 = md.digest();
-
-		md.update(concatenate(h_14, h_58));
-		h_18 = md.digest(); // Root Hash Value
-
-		return h_18;
+		return hashTreeValues.get(6);
 
 	}
 
