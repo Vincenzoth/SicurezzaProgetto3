@@ -13,6 +13,7 @@ public class PersonalInfo implements Serializable{
 	private HashMap<String, PrivateKey> privKeyVer;
 	private HashMap<String, String> sitesPasswords;
 	private HashMap<String, SecretKey> simmetricKeys;
+	// Pubbbbliche????????
 
 	
 	public PersonalInfo() {
