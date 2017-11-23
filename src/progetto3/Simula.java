@@ -36,7 +36,7 @@ public class Simula {
 
 	public static void main(String[] args) {
 		TSA myTSA = null;
-		ArrayList<Marca> marche;
+		ArrayList<Marca> marche = null;
 
 		try {
 			myTSA = initTSA();
@@ -50,7 +50,7 @@ public class Simula {
 
 		ArrayList<Richiesta> requests = new ArrayList<Richiesta>();
 		// costruisci l'rray di richieste
-		int numRequest = 8;
+		int numRequest = 20;
 
 
 		try {
@@ -72,6 +72,7 @@ public class Simula {
 			e.printStackTrace();
 			System.err.println("Errore nelgenerare le marche!");
 		}
+		marche.get(0);
 
 		System.out.println("Azz");
 
