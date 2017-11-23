@@ -1,5 +1,6 @@
 package progetto3;
 
+import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.InvalidKeyException;
@@ -8,6 +9,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
 import java.security.Signature;
+import java.security.SignatureException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -22,8 +24,10 @@ public class TSA {
 		sig.initSign(keySig);
 	}
 
-	public ArrayList<Marca> metodo(ArrayList<Richiesta> requests) throws NoSuchAlgorithmException{
+	public ArrayList<Marca> metodo(ArrayList<Richiesta> requests) throws NoSuchAlgorithmException, SignatureException{
 		int numReq = 0;
+		Marca m1, m2, m3, m4, m5, m6, m7, m8;
+		ArrayList<Marca> marche = new ArrayList<Marca>();
 		
 		// FAI REQUEST MULTIPLA DI 8 CON PADDING FITTIZZZI 
 		
@@ -39,20 +43,26 @@ public class TSA {
 			// pubblica il root value
 			// writeRootValue();
 			
-			// costruiamo le marche
-			
 			// data e ora
 			long time = getTime();
 			
 			// creiamo le marche per l'albero
-		
-			sig.update(concatenate(r.get(0).getH(), time));
-			signatureBytes = sig.sign();
-			
-			Marca m1 = new Marca(r.get(0).getIdUser(), serialNumber++, t, r.get(0).getH(), new byte[2]);
+			for(int i = 0; i<8; i++) {
+				// firmare TUTTA la info
+				sig.update(concatenate(r.get(i).getH(), longToBytes(time)));
+				marche.add(new Marca(r.get(i).getIdUser(), serialNumber++, time, r.get(i).getH(), sig.sign()));	
+			}
 			
 		}
+		
+		return marche;
 	
+	}
+	
+	private byte[] longToBytes(long n) {
+		ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
+		buffer.putLong(n);
+		return buffer.array();
 	}
 	
 	private byte[] computeTree(ArrayList<Richiesta> requests) throws NoSuchAlgorithmException {
