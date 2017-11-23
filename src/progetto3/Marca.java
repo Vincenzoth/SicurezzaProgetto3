@@ -1,18 +1,22 @@
 package progetto3;
 
-import java.security.Timestamp;
+import java.sql.Timestamp;
 
 public class Marca {
 	private String idUser;
 	private long serialNumber;
-	private Timestamp time;
+	private Long timest;
+	private byte[] digest;
+	private byte[] sig;
 	// digest
 	// firma
 	
-	public Marca(String idUser, long serialNumber, Timestamp time) {
+	public Marca(String idUser, long serialNumber, long timest, byte[] digest, byte[] sig) {
 		this.idUser = idUser;
 		this.serialNumber = serialNumber;
-		this.time = time;
+		this.timest = timest;
+		this.digest = digest;
+		this.sig = sig;
 		
 	}
 	
@@ -28,11 +32,18 @@ public class Marca {
 	public void setSerialNumber(long serialNumber) {
 		this.serialNumber = serialNumber;
 	}
-	public Timestamp getTime() {
-		return time;
+	public long getTime() {
+		return timest;
 	}
-	public void setTime(Timestamp time) {
-		this.time = time;
+	public void setTime(long time) {
+		this.timest = time;
 	}
+	public byte[] getDigest() {
+		return digest;
+	}
+	public byte[] getSig() {
+		return sig;
+	}
+	
 
 }

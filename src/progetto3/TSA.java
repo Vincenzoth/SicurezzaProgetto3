@@ -1,11 +1,26 @@
 package progetto3;
 
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.security.InvalidKeyException;
+import java.security.KeyFactory;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.Signature;
+import java.security.spec.PKCS8EncodedKeySpec;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 
 public class TSA {
+	private long serialNumber;
+	private Signature sig;
+	
+	public TSA(PrivateKey keySig) throws NoSuchAlgorithmException, InvalidKeyException {
+		serialNumber = 0;
+		sig = Signature.getInstance("SHA1withDSA");
+		sig.initSign(keySig);
+	}
 
 	public ArrayList<Marca> metodo(ArrayList<Richiesta> requests) throws NoSuchAlgorithmException{
 		int numReq = 0;
@@ -21,14 +36,20 @@ public class TSA {
 		for(ArrayList<Richiesta> r : splittedRequest) {
 			// otteniamo il rootHashValue
 			byte[] rootHashValue = computeTree(r);
+			// pubblica il root value
+			// writeRootValue();
 			
 			// costruiamo le marche
 			
 			// data e ora
-			Timestamp t = getTime();
+			long time = getTime();
 			
 			// creiamo le marche per l'albero
-			//Marca m1 = new Marca();
+		
+			sig.update(concatenate(r.get(0).getH(), time));
+			signatureBytes = sig.sign();
+			
+			Marca m1 = new Marca(r.get(0).getIdUser(), serialNumber++, t, r.get(0).getH(), new byte[2]);
 			
 		}
 	
@@ -70,8 +91,8 @@ public class TSA {
 		return full;
 	}
 	
-	private Timestamp getTime() {
+	private long getTime() {
 		java.util.Date date = new java.util.Date();
-		return new Timestamp(date.getTime());
+		return new Timestamp(date.getTime()).getTime();
 	}
 }
