@@ -1,6 +1,7 @@
 package progetto3;
 
 import java.sql.Timestamp;
+import java.util.ArrayList;
 
 public class Marca {
 	private String idUser;
@@ -8,15 +9,17 @@ public class Marca {
 	private Long timest;
 	private byte[] digest;
 	private byte[] sig;
+	private ArrayList<TempBox> linkedInformation;
 	// digest
 	// firma
 	
-	public Marca(String idUser, long serialNumber, long timest, byte[] digest, byte[] sig) {
+	public Marca(String idUser, long serialNumber, long timest, byte[] digest, byte[] sig, ArrayList<TempBox> linkedInformation) {
 		this.idUser = idUser;
 		this.serialNumber = serialNumber;
 		this.timest = timest;
 		this.digest = digest;
 		this.sig = sig;
+		this.linkedInformation = linkedInformation;
 		
 	}
 	
@@ -44,6 +47,11 @@ public class Marca {
 	public byte[] getSig() {
 		return sig;
 	}
+
+	public ArrayList<TempBox> getLinkedInformation() {
+		return linkedInformation;
+	}
+	
 	
 
 }
