@@ -17,6 +17,13 @@ import java.util.ArrayList;
 public class TSA {
 	private long serialNumber;
 	private Signature sig;
+	private byte[] h_12;
+	private byte[] h_34;
+	private byte[] h_56;
+	private byte[] h_78;
+	private byte[] h_14;
+	private byte[] h_58;
+	private byte[] h_18;
 	
 	public TSA(PrivateKey keySig) throws NoSuchAlgorithmException, InvalidKeyException {
 		serialNumber = 0;
@@ -50,7 +57,29 @@ public class TSA {
 			for(int i = 0; i<8; i++) {
 				// firmare TUTTA la info
 				sig.update(concatenate(r.get(i).getH(), longToBytes(time)));
-				marche.add(new Marca(r.get(i).getIdUser(), serialNumber++, time, r.get(i).getH(), sig.sign()));	
+				marche.add(new Marca(r.get(i).getIdUser(), serialNumber++, time, r.get(i).getH(), sig.sign()));
+				if(i%2==0) {
+					//add r(i+1)					
+				}else {
+					//add r(i-1)
+				}
+				if(i<4) {
+					//add h58
+					if(i<2) {
+						//add 34
+					}else {
+						//add 12
+					}
+					
+				} else {
+					//add 14
+					if(i<6) {
+						//add 78
+					}else {
+						//add 56
+					}
+				}
+				
 			}
 			
 		}
@@ -69,25 +98,25 @@ public class TSA {
 		MessageDigest md = MessageDigest.getInstance("SHA-256");
 		
 		md.update(concatenate(requests.get(0).getH(), requests.get(1).getH()));
-		byte[] h_12 = md.digest();
+		h_12 = md.digest();
 		
 		md.update(concatenate(requests.get(2).getH(), requests.get(3).getH()));
-		byte[] h_34 = md.digest();
+		h_34 = md.digest();
 		
 		md.update(concatenate(requests.get(4).getH(), requests.get(5).getH()));
-		byte[] h_56 = md.digest();
+		h_56 = md.digest();
 		
 		md.update(concatenate(requests.get(6).getH(), requests.get(7).getH()));
-		byte[] h_78 = md.digest();
+		h_78 = md.digest();
 		
 		md.update(concatenate(h_12, h_34));
-		byte[] h_14 = md.digest();
+		h_14 = md.digest();
 
 		md.update(concatenate(h_56, h_78));
-		byte[] h_58 = md.digest();
+		h_58 = md.digest();
 		
 		md.update(concatenate(h_14, h_58));
-		byte[] h_18 = md.digest(); // Root Hash Value
+		h_18 = md.digest(); // Root Hash Value
 		
 		return h_18;
 
