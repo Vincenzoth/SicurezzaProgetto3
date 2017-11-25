@@ -2,6 +2,7 @@ package keyRing;
 
 import java.io.Serializable;
 import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.util.HashMap;
 
 import javax.crypto.SecretKey;
@@ -14,6 +15,7 @@ public class PersonalInfo implements Serializable{
 	private HashMap<String, String> sitesPasswords;
 	private HashMap<String, SecretKey> simmetricKeys;
 	// Pubbbbliche????????
+	private DoubleEntryMap<String, String, PublicKey> publicKeys;
 
 	
 	public PersonalInfo() {
@@ -21,6 +23,7 @@ public class PersonalInfo implements Serializable{
 		this.privKeyVer = new HashMap<String,PrivateKey>();
 		this.sitesPasswords = new HashMap<String,String>();
 		this.simmetricKeys = new HashMap<String, SecretKey>();
+		this.publicKeys = new DoubleEntryMap<String, String, PublicKey>();
 	}
 	
 	public HashMap<String,PrivateKey> getPrivKeyCod() {
@@ -35,6 +38,10 @@ public class PersonalInfo implements Serializable{
 	}
 	public HashMap<String, SecretKey> getSimmetricKeys() {
 		return simmetricKeys;
+	}
+	
+	public DoubleEntryMap< String, String, PublicKey> getpublicKeys(){
+		return this.publicKeys;
 	}
 
 }

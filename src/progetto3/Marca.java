@@ -5,21 +5,18 @@ import java.util.ArrayList;
 public class Marca {
 	private String idUser;
 	private long serialNumber;
-	private Long timest;
+	private long timest;
 	private byte[] digest;
 	private byte[] sig;
-	private ArrayList<TempBox> linkedInformation;
-	// digest
-	// firma
+	private ArrayList<LinkedInfoUnit> linkedInformation;
 	
-	public Marca(String idUser, long serialNumber, long timest, byte[] digest, byte[] sig, ArrayList<TempBox> linkedInformation) {
+	public Marca(String idUser, long serialNumber, long timest, byte[] digest, byte[] sig, ArrayList<LinkedInfoUnit> linkedInformation) {
 		this.idUser = idUser;
 		this.serialNumber = serialNumber;
 		this.timest = timest;
 		this.digest = digest;
 		this.sig = sig;
-		this.linkedInformation = linkedInformation;
-		
+		this.linkedInformation = linkedInformation;	
 	}
 	
 	public String getIdUser() {
@@ -46,11 +43,7 @@ public class Marca {
 	public byte[] getSig() {
 		return sig;
 	}
-
-	public ArrayList<TempBox> getLinkedInformation() {
+	public ArrayList<LinkedInfoUnit> getLinkedInformation() {
 		return linkedInformation;
 	}
-	
-	
-
 }

@@ -3,7 +3,6 @@ package progetto3;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.file.Paths;
 import java.security.InvalidKeyException;
@@ -13,13 +12,20 @@ import java.security.PrivateKey;
 import java.security.SecureRandom;
 import java.security.Signature;
 import java.security.SignatureException;
+import java.sql.Date;
 import java.sql.Timestamp;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
 
 
 public class TSA {
 	final static String PATH = Paths.get(System.getProperty("user.dir")).toString();
-	final static String FILE_NAME = PATH + "/data/rootHashValues";
+	final static String FILE_NAME_ROOTH = PATH + "/data/rootHashValues";
+	final static String PATH_FILE_MARCHE = PATH + "/data/marche/";
 	final static int TREE_ELEM = 8;
 	final static String DUMMY_HASH_ALG = "SHA-1";
 
@@ -36,13 +42,18 @@ public class TSA {
 		sig.initSign(keySig);
 
 		hashTreeValues = new ArrayList<byte[]>();
+
+		File path = new File(PATH_FILE_MARCHE);
+		if(!path.exists()) { 			 
+			path.mkdirs();
+		}
 	}
 
 	public ArrayList<Marca> metodo(ArrayList<Richiesta> requests) throws NoSuchAlgorithmException, SignatureException, IOException{
 		//IN REALTA' LE RICHIESTE DEVONO ARRIVARE CIFRATE
-		
+
 		ArrayList<Marca> marche = new ArrayList<Marca>();
-		ArrayList<TempBox> linkedInformation = new ArrayList<TempBox>();
+		ArrayList<LinkedInfoUnit> linkedInformation = new ArrayList<LinkedInfoUnit>();
 
 		// FAI REQUEST MULTIPLA DI 8 CON PADDING FITTIZZZI 
 		// genera a caso un array di byte di grandezza corretta
@@ -74,38 +85,43 @@ public class TSA {
 
 			// creiamo le marche per l'albero
 			for(int i = 0; i<8; i++) {
+				if(!linkedInformation.isEmpty())
+					linkedInformation.clear();
+				
 				// firmare TUTTA la info
 				sig.update(concatenate(r.get(i).getH(), longToBytes(time)));
 
 				if(i%2==0) {
-					linkedInformation.add(new TempBox(r.get(i+1).getH(), true));				
+					linkedInformation.add(new LinkedInfoUnit(r.get(i+1).getH(), true));				
 				}else {
-					linkedInformation.add(new TempBox(r.get(i-1).getH(), false));
+					linkedInformation.add(new LinkedInfoUnit(r.get(i-1).getH(), false));
 				}
 				if(i<4) {
 					if(i<2) {
 						//add 34
-						linkedInformation.add(new TempBox(hashTreeValues.get(1), true));
+						linkedInformation.add(new LinkedInfoUnit(hashTreeValues.get(1), true));
 					}else {
 						//add 12
-						linkedInformation.add(new TempBox(hashTreeValues.get(0), false));
+						linkedInformation.add(new LinkedInfoUnit(hashTreeValues.get(0), false));
 					}
 					//add h58
-					linkedInformation.add(new TempBox(hashTreeValues.get(5), true));
+					linkedInformation.add(new LinkedInfoUnit(hashTreeValues.get(5), true));
 
 				} else {
 					if(i<6) {
 						//add 78
-						linkedInformation.add(new TempBox(hashTreeValues.get(3), true));
+						linkedInformation.add(new LinkedInfoUnit(hashTreeValues.get(3), true));
 					}else {
 						//add 56
-						linkedInformation.add(new TempBox(hashTreeValues.get(2), true));
+						linkedInformation.add(new LinkedInfoUnit(hashTreeValues.get(2), true));
 					}
 					//add 14
-					linkedInformation.add(new TempBox(hashTreeValues.get(4), false));
+					linkedInformation.add(new LinkedInfoUnit(hashTreeValues.get(4), false));
 				}
 
-				marche.add(new Marca(r.get(i).getIdUser(), serialNumber++, time, r.get(i).getH(), sig.sign(), linkedInformation));
+				Marca m = new Marca(r.get(i).getIdUser(), serialNumber++, time, r.get(i).getH(), sig.sign(), linkedInformation);
+				marche.add(m);
+				writeMarca(m);
 
 			}
 
@@ -133,6 +149,9 @@ public class TSA {
 	}
 
 	private byte[] computeTree(ArrayList<Richiesta> requests) throws NoSuchAlgorithmException {
+		if(!hashTreeValues.isEmpty())
+			hashTreeValues.clear();
+
 		MessageDigest md = MessageDigest.getInstance("SHA-256");
 
 		for(int i = 0; i < TREE_ELEM; i+=2) {
@@ -166,17 +185,65 @@ public class TSA {
 		return new Timestamp(date.getTime()).getTime();
 	}
 
+	@SuppressWarnings("unchecked")
+	private void writeMarca(Marca m) throws IOException {
+		JSONObject marca = new JSONObject();
+		JSONArray  linkInfo = new JSONArray ();
+
+		for(LinkedInfoUnit liu : m.getLinkedInformation()) {
+			JSONObject linkingUnit = new JSONObject();
+			linkingUnit.put("hash", byteArrayToHexString(liu.getH()));
+			linkingUnit.put("right", liu.isR());
+			linkInfo.add(linkingUnit);
+		}
+
+		Date date = new Date(m.getTime());
+		DateFormat formatter = new SimpleDateFormat("dd-MM-YYYY_HH:mm:ss:SSS");
+		String dateFormatted = formatter.format(date);
+		formatter = new SimpleDateFormat("dd-MM-YYYY_HH-mm-ss-SSS");
+		String dateFormattedToFile = formatter.format(date);
+
+		marca.put("idUser", m.getIdUser());
+		marca.put("serialNumber", m.getSerialNumber());
+		marca.put("timest", m.getTime());
+		marca.put("time", dateFormatted);
+		marca.put("digest", byteArrayToHexString(m.getDigest()));
+		marca.put("linkedInformation", linkInfo);
+
+		FileWriter file = new FileWriter(PATH_FILE_MARCHE + m.getSerialNumber() + "_" + m.getIdUser() + "_" + dateFormattedToFile);
+		file.write(marca.toJSONString());
+		file.flush();
+		file.close();
+
+
+	}
+
 	private void writeRootValue(long time, byte[] rootHashValue) throws IOException {
 		// scriviamo il root hash value nel file
-		File rootHashFile = new File(FILE_NAME);
-		FileWriter writer = new FileWriter (rootHashFile);
+		File rootHashFile = new File(FILE_NAME_ROOTH);
+		FileWriter writer = new FileWriter (rootHashFile, true);
 
-		writer.write((int) time);
+		Date date = new Date(time);
+		DateFormat formatter = new SimpleDateFormat("dd/MM/YYYY  -  HH:mm:ss:SSS");
+		String dateFormatted = formatter.format(date);
+
+		writer.write( "Root Hash : " + dateFormatted);
+		//writer.write("\n");
+		//writer.write(Base64.getEncoder().encodeToString(rootHashValue));
 		writer.write("\n");
-		writer.write(String.format( "%064x", new BigInteger( 1, rootHashValue ) ));
-		writer.write("\n");
+		writer.write(byteArrayToHexString(rootHashValue));
+		writer.write("\n\n");
 
 		writer.flush();
 		writer.close();
 	}
+	
+    private String byteArrayToHexString(byte[] arrayBytes) {
+        StringBuffer stringBuffer = new StringBuffer();
+        for (int i = 0; i < arrayBytes.length; i++) {
+            stringBuffer.append(Integer.toString((arrayBytes[i] & 0xff) + 0x100, 16)
+                    .substring(1));
+        }
+        return stringBuffer.toString();
+    }
 }

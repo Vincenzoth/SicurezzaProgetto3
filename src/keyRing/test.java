@@ -3,6 +3,7 @@ package keyRing;
 import java.io.IOException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
 import java.security.spec.InvalidKeySpecException;
 
 import javax.crypto.BadPaddingException;
@@ -65,6 +66,19 @@ public class test {
 			e.printStackTrace();
 			//System.out.println("errore: "+e.getMessage());
 		}
+		
+		
+		
+		System.out.println("-----------------------------------------------------------------------------------");
+		DoubleEntryMap<String,String,String> mappad = new DoubleEntryMap<String,String,String>();
+		
+		mappad.put("user1", "chiave11", "fico");
+		mappad.put("user1", "chiave11", "ficosd");
+		mappad.put("user1", "chiave12", "fico2");
+		mappad.put("user2", "chiave21", "ficoasdasd");
+		
+		
+		System.out.println("chiave 1 dell'user 1: "+ mappad.get("user1", "chiave11"));
 	}
 
 }

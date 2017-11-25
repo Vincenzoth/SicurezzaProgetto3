@@ -12,6 +12,7 @@ import java.nio.file.Paths;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
@@ -39,7 +40,7 @@ public class KeyRing {
 	private SecretKey key;
 	private HashMap<String,User> keys;
 
-	
+
 	/**
 	 * Costruttore senza parametri.
 	 * Costruisce un oggetto capace di gestire tutti gli utenti ma non ha accesso alle informazioni private di un singolo utente.
@@ -54,14 +55,14 @@ public class KeyRing {
 	 */
 	public KeyRing() throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeySpecException, InvalidKeyException, FileNotFoundException, ClassNotFoundException, IOException {
 		this.cipher = Cipher.getInstance(CIPHER);
-		
+
 		// inizializza mappa
 		keys = new HashMap<String,User>();
 
 		//popola la mappa
 		loadMap();
 	}
-	
+
 	/**
 	 * Costruisce un oggetto capace di gestire avere accesso accesso alle informazioni private di un singolo utente.
 	 * @param ID (Identificativo dell 'user di cui si vuole costruire il key ring)
@@ -77,27 +78,27 @@ public class KeyRing {
 	public KeyRing (String ID, String password) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeySpecException, FileNotFoundException, IOException, ClassNotFoundException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException {
 		this.cipher = Cipher.getInstance(CIPHER);
 		this.ID = ID;
-		
-		
+
+
 		// inizializza mappa
 		keys = new HashMap<String,User>();
 
 		//popola la mappa
 		loadMap();
-		
+
 		// ottieni informazioni utente
 		User us = keys.get(ID);
-		
+
 		// genera la chiave
 		this.key = loadKey(password.toCharArray(), us.getSalt());
-		
+
 		// inizializza cifrario
 		this.cipher.init(Cipher.DECRYPT_MODE, this.key);
-		
+
 		pi = (PersonalInfo) us.getInfo().getObject(this.cipher);
 
 	}
-	
+
 	/**
 	 * Genera la chiave per decifrare le informazioni private di un utente a partire dalla password e salt passati come parametri
 	 * @return secretKey
@@ -120,7 +121,7 @@ public class KeyRing {
 
 		return secretKey;
 	}
-	
+
 	/**
 	 * Se il file delle chiavi è presente, legge le informazioni e le utilizza
 	 * per popolare la mappa degli utenti
@@ -136,7 +137,7 @@ public class KeyRing {
 			ois.close();
 		}
 	}
-	
+
 	/**
 	 * Inserisce un nuovo utente all’interno della mappa degli utenti e all’interno del file delle chiavi
 	 * @param password (password che verrà utilizzata per generare la chiave dell'utente con cui cifrare le informazioni private)
@@ -155,15 +156,15 @@ public class KeyRing {
 		SecureRandom r = new SecureRandom();
 		byte[] salt = new byte[16];
 		r.nextBytes(salt);
-		
+
 		//genera chiave e inizializza il cifrario
 		SecretKey k = loadKey(password.toCharArray(), salt);
 		this.cipher.init(Cipher.ENCRYPT_MODE, k);
-		
+
 		// genera blocco informazioni cifrate
 		PersonalInfo info = new PersonalInfo();
 		SealedObject infoEncr = new SealedObject(info, this.cipher);
-		
+
 
 		// aggiungi alla mappa
 		User retValue = keys.put(newID, new User(newID, salt, infoEncr));
@@ -183,12 +184,19 @@ public class KeyRing {
 	 */
 	public boolean removeUser(String userID) throws InvalidKeyException, FileNotFoundException, IOException {
 
-		return true;
+		User retValue = keys.remove(userID);
+
+		if( retValue != null) {
+			// aggiungi al file	
+			writeFile();
+		}
+
+		return retValue == null ? false : true;
 
 	}
-	
-	
-	
+
+
+
 	/**
 	 * Restituisce un array contente tutti gli ID degli utenti presenti nella mappa
 	 * @return Stringa di array contente gli ID degli utenti
@@ -201,7 +209,7 @@ public class KeyRing {
 
 		return usersID.toArray(new String[usersID.size()]);
 	}
-	
+
 	/**
 	 * Il metodo scrive le informazioni sul file.
 	 * @throws FileNotFoundException
@@ -211,14 +219,14 @@ public class KeyRing {
 		File keysFile = new File(FILE_NAME);
 		if(!keysFile.exists()) 			 
 			keysFile.getParentFile().mkdirs();
-		
+
 		ObjectOutputStream oss;
 		oss = new ObjectOutputStream(new FileOutputStream(keysFile));
 		oss.writeObject(keys);
 		oss.flush();
 		oss.close();
 	}
-	
+
 	/**
 	 * Il metodo aggiorna il file su disco
 	 * @throws InvalidKeyException
@@ -235,105 +243,128 @@ public class KeyRing {
 		// riscrivi file
 		writeFile();
 	}
-	
 
 
-	
+
+
 	public String addSitePasword(String idSite, String password) throws InvalidKeyException, IllegalBlockSizeException, IOException {
 		String returnValue = pi.getSitesPasswords().put(idSite, password);
 
 		updateFile();
-		
+
 		return returnValue;
 	}
-	
+
 	public String updateSitePasword(String idSite, String password) throws InvalidKeyException, IllegalBlockSizeException, IOException {
 		String returnValue = pi.getSitesPasswords().replace(idSite, password);
 
 		updateFile();
-		
+
 		return returnValue;
 	}
-	
+
 	public String getSitePassword(String idSite) {
 		return this.pi.getSitesPasswords().get(idSite);
 	}
-	
+
 	public String removeSite(String idSite) {
 		return this.pi.getSitesPasswords().remove(idSite);
 	}
 
 	public SecretKey addSimmetricKey(String IdKey, SecretKey key) throws InvalidKeyException, IllegalBlockSizeException, IOException {
 		SecretKey returnValue = pi.getSimmetricKeys().put(IdKey, key);
-		
+
 		updateFile();
-		
+
 		return returnValue;
 	}
-	
+
 	public SecretKey updateSimmetricKey(String IdKey, SecretKey newKey) throws InvalidKeyException, IllegalBlockSizeException, IOException {
 		SecretKey returnValue = pi.getSimmetricKeys().replace(IdKey, newKey);
-		
+
 		updateFile();
-		
+
 		return returnValue;
 	}
-	
+
 	public SecretKey getSimmetricKey(String IdKey) {
 		return pi.getSimmetricKeys().get(IdKey);
 	}
-	
+
 	public SecretKey removeSimmetricKey(String IdKey) {
 		return pi.getSimmetricKeys().remove(IdKey);
 	}
-	
-	
+
+
 	public PrivateKey addPrivateKeyCod(String IdKey, PrivateKey key) throws InvalidKeyException, IllegalBlockSizeException, IOException {
 		PrivateKey returnValue = pi.getPrivKeyCod().put(IdKey, key);
-		
+
 		updateFile();
-		
+
 		return returnValue;
 	}
-	
+
 	public PrivateKey updatePrivateKeyCod(String IdKey, PrivateKey newKey) throws InvalidKeyException, IllegalBlockSizeException, IOException {
 		PrivateKey returnValue = pi.getPrivKeyCod().replace(IdKey, newKey);
-		
+
 		updateFile();
-		
+
 		return returnValue;
 	}
-	
+
 	public PrivateKey getPrivateKeyCod(String IdKey) {
 		return pi.getPrivKeyCod().get(IdKey);
 	}
-	
+
 	public PrivateKey removePrivateKeyCod(String IdKey) {
 		return pi.getPrivKeyCod().remove(IdKey);
 	}
-	
-	
+
+
 	public PrivateKey addPrivateKeyVer(String IdKey, PrivateKey key) throws InvalidKeyException, IllegalBlockSizeException, IOException {
 		PrivateKey returnValue = pi.getPrivKeyVer().put(IdKey, key);
-		
+
 		updateFile();
-		
+
 		return returnValue;
 	}
-	
+
 	public PrivateKey updatePrivateKeyVer(String IdKey, PrivateKey newKey) throws InvalidKeyException, IllegalBlockSizeException, IOException {
 		PrivateKey returnValue = pi.getPrivKeyVer().replace(IdKey, newKey);
-		
+
 		updateFile();
-		
+
 		return returnValue;
 	}
-	
+
 	public PrivateKey getPrivateKeyVer(String IdKey) {
 		return pi.getPrivKeyVer().get(IdKey);
 	}
-	
+
 	public PrivateKey removePrivateKeyVer(String IdKey) {
 		return pi.getPrivKeyVer().remove(IdKey);
+	}
+
+	public PublicKey addPublicKey(String IDuser, String IdKey, PublicKey key) throws InvalidKeyException, IllegalBlockSizeException, IOException {
+		PublicKey returnValue = pi.getpublicKeys().put(IDuser, IdKey, key);
+
+		updateFile();
+
+		return returnValue;
+	}
+	public PublicKey updatePublicKey(String IDUser, String IdKey, PublicKey newKey) throws InvalidKeyException, IllegalBlockSizeException, IOException {
+		PublicKey returnValue = pi.getpublicKeys().replace(IDUser, IdKey, newKey);
+
+		updateFile();
+
+		return returnValue;
+	}
+
+	public PublicKey getPublicKey(String IDUser, String IdKey) {
+		return pi.getpublicKeys().get(IDUser, IdKey);
+	}
+
+	public PublicKey removePublicKey(String Iduser, String IdKey) {
+		return pi.getpublicKeys().remove(Iduser, IdKey);
 	}
 }
