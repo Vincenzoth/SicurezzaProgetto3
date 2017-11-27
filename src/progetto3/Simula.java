@@ -13,10 +13,12 @@ import java.security.KeyPairGenerator;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.security.SecureRandom;
 import java.security.SignatureException;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
 
 import org.json.simple.parser.ParseException;
@@ -85,7 +87,7 @@ public class Simula {
 
 
 			try {
-				marche = myTSA.metodo(requests);
+				marche = myTSA.generateMarche(requests);
 
 			} catch (NoSuchAlgorithmException | SignatureException | IOException e) {
 				e.printStackTrace();
@@ -113,11 +115,16 @@ public class Simula {
 			}
 			
 			try {
-				Validator val = new Validator("SHA-256");
+				//Leggiamo chiave
+				byte[] keyBytes = Files.readAllBytes(Paths.get(FILE_PUB_KEY_SIG));
+				KeyFactory kf = KeyFactory.getInstance("DSA");
+				PublicKey sigKey = kf.generatePublic(new X509EncodedKeySpec(keyBytes));
+						
+				Validator val = new Validator("SHA-256", sigKey);
 
-				String rootHashValue = "7ddd24b66c34d4e7d788268628b4f7fa7db91b752af1e7f75eca649e5d5e7dc0";
+				String rootHashValue = "c8090cb33bb5507c2dd3424f20920d60255de6b0ef78c3fc07b4a52b4e148286";
 
-				val.check(PATH+"/data/marche/0_UserTest_25-11-2017_19-49-19-136", hashTest, rootHashValue);
+				val.check(PATH+"/data/marche/0_UserTest_27-11-2017_22-24-30-292.txt", hashTest, rootHashValue);
 
 			} catch (NoSuchAlgorithmException e) {
 				e.printStackTrace();
@@ -126,6 +133,12 @@ public class Simula {
 			} catch (IOException e) {
 				e.printStackTrace();
 			} catch (ParseException e) {
+				e.printStackTrace();
+			} catch (InvalidKeySpecException e) {
+				e.printStackTrace();
+			} catch (InvalidKeyException e) {
+				e.printStackTrace();
+			} catch (SignatureException e) {
 				e.printStackTrace();
 			}
 		}

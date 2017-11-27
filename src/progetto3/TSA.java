@@ -1,6 +1,7 @@
 package progetto3;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -49,13 +50,12 @@ public class TSA {
 		}
 	}
 
-	public ArrayList<Marca> metodo(ArrayList<Richiesta> requests) throws NoSuchAlgorithmException, SignatureException, IOException{
+	public ArrayList<Marca> generateMarche(ArrayList<Richiesta> requests) throws NoSuchAlgorithmException, SignatureException, IOException{
 		//IN REALTA' LE RICHIESTE DEVONO ARRIVARE CIFRATE
 
 		ArrayList<Marca> marche = new ArrayList<Marca>();
 		ArrayList<LinkedInfoUnit> linkedInformation = new ArrayList<LinkedInfoUnit>();
 
-		// FAI REQUEST MULTIPLA DI 8 CON PADDING FITTIZZZI 
 		// genera a caso un array di byte di grandezza corretta
 		int remain = requests.size() % TREE_ELEM;
 
@@ -87,9 +87,6 @@ public class TSA {
 			for(int i = 0; i<8; i++) {
 				if(!linkedInformation.isEmpty())
 					linkedInformation.clear();
-				
-				// firmare TUTTA la info
-				sig.update(concatenate(r.get(i).getH(), longToBytes(time)));
 
 				if(i%2==0) {
 					linkedInformation.add(new LinkedInfoUnit(r.get(i+1).getH(), true));				
@@ -119,12 +116,10 @@ public class TSA {
 					linkedInformation.add(new LinkedInfoUnit(hashTreeValues.get(4), false));
 				}
 
-				Marca m = new Marca(r.get(i).getIdUser(), serialNumber++, time, r.get(i).getH(), sig.sign(), linkedInformation);
+				Marca m = new Marca(r.get(i).getIdUser(), serialNumber++, time, r.get(i).getH(), linkedInformation);
 				marche.add(m);
 				writeMarca(m);
-
 			}
-
 		}
 
 		return marche;
@@ -186,7 +181,7 @@ public class TSA {
 	}
 
 	@SuppressWarnings("unchecked")
-	private void writeMarca(Marca m) throws IOException {
+	private void writeMarca(Marca m) throws IOException, SignatureException {
 		JSONObject marca = new JSONObject();
 		JSONArray  linkInfo = new JSONArray ();
 
@@ -210,12 +205,15 @@ public class TSA {
 		marca.put("digest", byteArrayToHexString(m.getDigest()));
 		marca.put("linkedInformation", linkInfo);
 
-		FileWriter file = new FileWriter(PATH_FILE_MARCHE + m.getSerialNumber() + "_" + m.getIdUser() + "_" + dateFormattedToFile);
-		file.write(marca.toJSONString());
-		file.flush();
-		file.close();
+		// Firma
+		sig.update(marca.toJSONString().getBytes("UTF8"));
+		byte[] signat = sig.sign();
 
-
+		FileOutputStream writer = 	new FileOutputStream(PATH_FILE_MARCHE + m.getSerialNumber() + "_" + m.getIdUser() + "_" + dateFormattedToFile+".txt");   
+		writer.write(signat);
+		writer.write(marca.toJSONString().toString().getBytes());
+		writer.flush();
+		writer.close();
 	}
 
 	private void writeRootValue(long time, byte[] rootHashValue) throws IOException {
@@ -237,13 +235,13 @@ public class TSA {
 		writer.flush();
 		writer.close();
 	}
-	
-    private String byteArrayToHexString(byte[] arrayBytes) {
-        StringBuffer stringBuffer = new StringBuffer();
-        for (int i = 0; i < arrayBytes.length; i++) {
-            stringBuffer.append(Integer.toString((arrayBytes[i] & 0xff) + 0x100, 16)
-                    .substring(1));
-        }
-        return stringBuffer.toString();
-    }
+
+	private String byteArrayToHexString(byte[] arrayBytes) {
+		StringBuffer stringBuffer = new StringBuffer();
+		for (int i = 0; i < arrayBytes.length; i++) {
+			stringBuffer.append(Integer.toString((arrayBytes[i] & 0xff) + 0x100, 16)
+					.substring(1));
+		}
+		return stringBuffer.toString();
+	}
 }

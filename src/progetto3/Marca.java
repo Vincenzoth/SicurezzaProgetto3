@@ -7,15 +7,13 @@ public class Marca {
 	private long serialNumber;
 	private long timest;
 	private byte[] digest;
-	private byte[] sig;
 	private ArrayList<LinkedInfoUnit> linkedInformation;
 	
-	public Marca(String idUser, long serialNumber, long timest, byte[] digest, byte[] sig, ArrayList<LinkedInfoUnit> linkedInformation) {
+	public Marca(String idUser, long serialNumber, long timest, byte[] digest, ArrayList<LinkedInfoUnit> linkedInformation) {
 		this.idUser = idUser;
 		this.serialNumber = serialNumber;
 		this.timest = timest;
 		this.digest = digest;
-		this.sig = sig;
 		this.linkedInformation = linkedInformation;	
 	}
 	
@@ -39,9 +37,6 @@ public class Marca {
 	}
 	public byte[] getDigest() {
 		return digest;
-	}
-	public byte[] getSig() {
-		return sig;
 	}
 	public ArrayList<LinkedInfoUnit> getLinkedInformation() {
 		return linkedInformation;
