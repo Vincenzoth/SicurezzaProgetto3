@@ -41,7 +41,6 @@ public class TSA {
 	private Signature sig;
 	private String algorithmSignature;
 	private Cipher cipher;
-	// fai un bel Arraylist co sti cosi
 	private ArrayList<byte[]> hashTreeValues;
 	//   | h_12 | h_34 | h_56 | h_78 | h_14 | h_58 | h_18 |
 
@@ -85,7 +84,6 @@ public class TSA {
 	 * @throws BadPaddingException
 	 */
 	public  void generateMarche(ArrayList<SealedObject> cipherRequests) throws NoSuchAlgorithmException, SignatureException, IOException, ClassNotFoundException, IllegalBlockSizeException, BadPaddingException{
-		
 		
 		ArrayList<Richiesta> requests = new  ArrayList<Richiesta>();
 		for (SealedObject req : cipherRequests) 
@@ -154,7 +152,7 @@ public class TSA {
 					linkedInformation.add(new LinkedInfoUnit(hashTreeValues.get(4), false));
 				}
 
-				Marca m = new Marca(r.get(i).getIdUser(), serialNumber++, time, r.get(i).getH(), linkedInformation, this.algorithmSignature);
+				Marca m = new Marca(r.get(i).getIdUser(), serialNumber++, time, r.get(i).getH(), byteArrayToHexString(rootHashValue), linkedInformation, this.algorithmSignature);
 				
 				writeMarca(m);
 			}
@@ -267,6 +265,7 @@ public class TSA {
 		marca.put("serialNumber", m.getSerialNumber());
 		marca.put("timestamp", m.getTime());
 		marca.put("time", dateFormatted);
+		marca.put("rootHashValue", m.getRootHashValue());
 		marca.put("digest", byteArrayToHexString(m.getDigest()));
 		marca.put("linkedInformation", linkInfo);
 		marca.put("algorithmSignature", this.algorithmSignature );

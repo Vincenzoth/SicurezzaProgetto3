@@ -7,6 +7,7 @@ public class Marca {
 	private long serialNumber;
 	private long timest;
 	private byte[] digest;
+	private String rootHashValue;
 	private ArrayList<LinkedInfoUnit> linkedInformation;
 	private String algorithSignature;
 	
@@ -19,11 +20,12 @@ public class Marca {
 	 * @param linkedInformation
 	 * @param algorithmSignature tipo di algoritmo di firma della marca temporale 
 	 */
-	public Marca(String idUser, long serialNumber, long timest, byte[] digest, ArrayList<LinkedInfoUnit> linkedInformation, String algorithmSignature) {
+	public Marca(String idUser, long serialNumber, long timest, byte[] digest, String rootHashValue, ArrayList<LinkedInfoUnit> linkedInformation, String algorithmSignature) {
 		this.idUser = idUser;
 		this.serialNumber = serialNumber;
 		this.timest = timest;
 		this.digest = digest;
+		this.rootHashValue = rootHashValue;
 		this.linkedInformation = linkedInformation;	
 		this.algorithSignature = algorithmSignature;
 	}
@@ -52,10 +54,13 @@ public class Marca {
 	public ArrayList<LinkedInfoUnit> getLinkedInformation() {
 		return linkedInformation;
 	}
-
 	public String getAlgorithSignature() {
 		return algorithSignature;
 	}
+	public String getRootHashValue() {
+		return rootHashValue;
+	}
+	
 	
 	
 }

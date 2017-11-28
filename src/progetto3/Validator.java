@@ -49,7 +49,7 @@ public class Validator {
 	 * @throws SignatureException
 	 * @throws MyException
 	 */
-	public boolean check(String marcaPath, byte[] myDigest, String rootHashValue) throws FileNotFoundException, IOException, ParseException, NoSuchAlgorithmException, InvalidKeyException, SignatureException, MyException {
+	public boolean check(String marcaPath, byte[] myDigest) throws FileNotFoundException, IOException, ParseException, NoSuchAlgorithmException, InvalidKeyException, SignatureException, MyException {
 		boolean returnValue;
 
 		// VERIFICARE LA FIRMA
@@ -87,9 +87,6 @@ public class Validator {
 		}
 
 
-		
-		
-
 		// calcolo root hash value a partire dal proprio digest
 		byte[] currentDigest = myDigest;
 
@@ -108,7 +105,7 @@ public class Validator {
 
 		String computedRootHash = String.format( "%064x", new BigInteger( 1, currentDigest ) );
 
-		if(computedRootHash.equals(rootHashValue))
+		if(computedRootHash.equals(marca.getRootHashValue()))
 			returnValue = true;
 		else
 			returnValue = false;
@@ -133,8 +130,6 @@ public class Validator {
 		JSONParser parser = new JSONParser();
 		JSONObject marcaJSON = (JSONObject) parser.parse(marcaString);
 
-		System.out.println(marcaJSON.get("idUser"));
-
 		JSONArray  linkedInformationJSON = (JSONArray) marcaJSON.get("linkedInformation");
 
 		ArrayList<LinkedInfoUnit> linkedInformation = new ArrayList<LinkedInfoUnit>();
@@ -148,8 +143,9 @@ public class Validator {
 				(long) marcaJSON.get("serialNumber"),
 				(long) marcaJSON.get("timestamp"),
 				hexStringToByteArray(marcaJSON.get("digest").toString()),
-				linkedInformation
-				,marcaJSON.get("algorithmSignature").toString());
+				marcaJSON.get("rootHashValue").toString(),
+				linkedInformation,
+				marcaJSON.get("algorithmSignature").toString());
 	}
 
 	/**

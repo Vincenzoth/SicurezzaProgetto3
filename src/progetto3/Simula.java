@@ -30,7 +30,7 @@ import javax.crypto.SealedObject;
 import org.json.simple.parser.ParseException;
 
 public class Simula {
-	final static boolean simulaTSA = true;
+	final static boolean simulaTSA = false;
 	final static boolean valutaMarca = true;
 
 
@@ -39,8 +39,8 @@ public class Simula {
 	final static String DUMMY_HASH_ALG = "SHA-1";
 	final static String CIPHER_ALG = "RSA";
 	final static String SIGNATURE_ALG = "DSA";
-	final static int KEY_LEN_COD = 1024;
-	final static int KEY_LEN_SIG = 1024;
+	final static int KEY_LEN_COD = 2048;
+	final static int KEY_LEN_SIG = 2048;
 
 	final static String BASE_PATH = Paths.get(System.getProperty("user.dir")).toString();
 	final static String KEYS_PATH = BASE_PATH + "/data/keys/";
@@ -49,7 +49,7 @@ public class Simula {
 	final static String FILE_PR_KEY_SIG = KEYS_PATH + "private/prSig.key";
 	final static String FILE_PUB_KEY_SIG = KEYS_PATH + "public/pubSig.key";
 	final static String CIPHER_MODE = "RSA/ECB/PKCS1Padding"; 
-	final static String SIGNATURE_MODE = "SHA1WithDSA"; 
+	final static String SIGNATURE_MODE = "SHA256WithDSA"; 
 
 
 
@@ -57,6 +57,16 @@ public class Simula {
 	public static void main(String[] args) {
 		
 		if(simulaTSA) {
+			TSA myTSA = null;
+
+			try {
+				myTSA = initTSA();
+			} catch (InvalidKeyException | NoSuchAlgorithmException | InvalidKeySpecException | IOException | NoSuchPaddingException e) {
+				e.printStackTrace();
+				System.err.println("Errore nell'inizializzare la TSA!");
+			}
+			
+			
 			Cipher cipher = null;
 			try {
 				cipher = Cipher.getInstance(CIPHER_MODE);
@@ -72,19 +82,6 @@ public class Simula {
 				e.printStackTrace();
 			} catch (InvalidKeyException e) {
 				e.printStackTrace();
-			}
-			
-			
-			
-			TSA myTSA = null;
-
-			try {
-				myTSA = initTSA();
-
-
-			} catch (InvalidKeyException | NoSuchAlgorithmException | InvalidKeySpecException | IOException | NoSuchPaddingException e) {
-				e.printStackTrace();
-				System.err.println("Errore nell'inizializzare la TSA!");
 			}
 
 
@@ -170,9 +167,7 @@ public class Simula {
 						
 				Validator val = new Validator("SHA-256", sigKey);
 
-				String rootHashValue = "a4cdfc13d1854ce1863b504dc89cefe8b38e116cffa8d1cc0f1a5784f27accb1";
-
-				if(val.check(PATH+"/data/marche/0_UserTest_28-11-2017_12-29-42-359.txt", hashTest, rootHashValue))
+				if(val.check(PATH+"/data/marche/0_UserTest_28-11-2017_22-13-19-635.txt", hashTest))
 					System.out.println("Il root Hash Value è valido");
 				else
 					System.out.println("Il root hash value non è valido");
