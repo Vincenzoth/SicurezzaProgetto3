@@ -10,6 +10,15 @@ public class Marca {
 	private ArrayList<LinkedInfoUnit> linkedInformation;
 	private String algorithSignature;
 	
+	/**
+	 * Costruttore della classe 
+	 * @param idUser identificativo del mittente 
+	 * @param serialNumber numero di serie della marca temporale
+	 * @param timest data e ora un cui la marca è stata generata
+	 * @param digest il digest calcolato dalla TSA partendo da quello fornito dal richiedente
+	 * @param linkedInformation
+	 * @param algorithmSignature tipo di algoritmo di firma della marca temporale 
+	 */
 	public Marca(String idUser, long serialNumber, long timest, byte[] digest, ArrayList<LinkedInfoUnit> linkedInformation, String algorithmSignature) {
 		this.idUser = idUser;
 		this.serialNumber = serialNumber;
