@@ -29,7 +29,8 @@ public class Validator {
 	}
 
 
-	public boolean check(String marcaPath, byte[] myDigest, String rootHashValue) throws FileNotFoundException, IOException, ParseException, NoSuchAlgorithmException, InvalidKeyException, SignatureException {
+	public boolean check(String marcaPath, byte[] myDigest, String rootHashValue) throws FileNotFoundException, IOException, ParseException, NoSuchAlgorithmException, InvalidKeyException, SignatureException, MyException {
+		boolean returnValue;
 
 		// VERIFICARE LA FIRMA
 		FileInputStream fis = new FileInputStream(new File(marcaPath));
@@ -43,7 +44,7 @@ public class Validator {
 		signatureBytes = new byte[2 + remainingByte];
 		System.arraycopy(firtBytesSig, 0, signatureBytes, 0, 2);
 		System.arraycopy(otherBytesSig, 0, signatureBytes, 2, remainingByte);
-		
+
 		String marcaJSON = "";
 		int content;
 		while ((content = fis.read()) != -1) {
@@ -51,9 +52,7 @@ public class Validator {
 		}
 
 		fis.close();
-		
-		
-		
+
 
 		// Verifica della firma
 		sig = Signature.getInstance("SHA1withDSA"); // se lo prendo dalla marca il tipo di firma?
@@ -66,9 +65,8 @@ public class Validator {
 		} catch (SignatureException e) {
 			verified = false;
 		}
-		
-		System.out.println("La firma è valida: " + verified);
-		
+
+
 		Marca marca = readMarca(marcaJSON);
 
 		// calcolo root hash value a partire dal proprio digest
@@ -91,13 +89,17 @@ public class Validator {
 
 		System.out.println(computedRootHash);
 
-		if(computedRootHash.equals(rootHashValue)) {
-			System.out.println("Tappost!");
-		}else
-			System.out.println("niente!");
 
+		if(computedRootHash.equals(rootHashValue))
+			returnValue = true;
+		else
+			returnValue = false;
+		
+		
+		if(!verified)
+			throw new MyException("Firma non valida!  RoothashValue: " + returnValue);
 
-		return true;
+		return returnValue;
 	}
 
 	private Marca readMarca(String marcaString) throws FileNotFoundException, IOException, ParseException {

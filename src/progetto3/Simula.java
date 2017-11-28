@@ -124,7 +124,10 @@ public class Simula {
 
 				String rootHashValue = "c8090cb33bb5507c2dd3424f20920d60255de6b0ef78c3fc07b4a52b4e148286";
 
-				val.check(PATH+"/data/marche/0_UserTest_27-11-2017_22-24-30-292.txt", hashTest, rootHashValue);
+				if(val.check(PATH+"/data/marche/0_UserTest_27-11-2017_22-24-30-292.txt", hashTest, rootHashValue))
+					System.out.println("Il root Hash Value è valido");
+				else
+					System.out.println("Il root hash value non è valido");
 
 			} catch (NoSuchAlgorithmException e) {
 				e.printStackTrace();
@@ -140,6 +143,10 @@ public class Simula {
 				e.printStackTrace();
 			} catch (SignatureException e) {
 				e.printStackTrace();
+			} catch (MyException e) {
+				e.printStackTrace();
+				System.err.println(e.getMessage());
+				
 			}
 		}
 
