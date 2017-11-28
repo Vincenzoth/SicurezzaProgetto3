@@ -1,7 +1,8 @@
 package progetto3;
 
+import java.io.Serializable;
 
-public class Richiesta {
+public class Richiesta implements Serializable {
 	private String idUser;
 	private byte[] h; //cif(h)
 	

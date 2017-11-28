@@ -21,10 +21,16 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
 
+import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.SealedObject;
+
 import org.json.simple.parser.ParseException;
 
 public class Simula {
-	final static boolean simulaTSA = false;
+	final static boolean simulaTSA = true;
 	final static boolean valutaMarca = true;
 
 
@@ -42,46 +48,83 @@ public class Simula {
 	final static String FILE_PUB_KEY_COD = KEYS_PATH + "public/pubCod.key";
 	final static String FILE_PR_KEY_SIG = KEYS_PATH + "private/prSig.key";
 	final static String FILE_PUB_KEY_SIG = KEYS_PATH + "public/pubSig.key";
+	final static String CIPHER_MODE = "RSA/ECB/PKCS1Padding"; 
+	final static String SIGNATURE_MODE = "SHA1WithDSA"; 
+
 
 
 
 	public static void main(String[] args) {
+		
 		if(simulaTSA) {
+			Cipher cipher = null;
+			try {
+				cipher = Cipher.getInstance(CIPHER_MODE);
+				byte[] keyPublicCodByte  = Files.readAllBytes(Paths.get(FILE_PUB_KEY_COD));
+				KeyFactory factoryRsa  =  KeyFactory.getInstance(CIPHER_ALG);
+				PublicKey keyPublicCod = factoryRsa.generatePublic(new X509EncodedKeySpec(keyPublicCodByte));
+				cipher.init(Cipher.ENCRYPT_MODE, keyPublicCod);
+			} catch (NoSuchAlgorithmException | NoSuchPaddingException e2) {
+				e2.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			} catch (InvalidKeySpecException e) {
+				e.printStackTrace();
+			} catch (InvalidKeyException e) {
+				e.printStackTrace();
+			}
+			
+			
+			
 			TSA myTSA = null;
 
 			try {
 				myTSA = initTSA();
 
 
-			} catch (InvalidKeyException | NoSuchAlgorithmException | InvalidKeySpecException | IOException e) {
+			} catch (InvalidKeyException | NoSuchAlgorithmException | InvalidKeySpecException | IOException | NoSuchPaddingException e) {
 				e.printStackTrace();
 				System.err.println("Errore nell'inizializzare la TSA!");
 			}
 
 
-			ArrayList<Richiesta> requests = new ArrayList<Richiesta>();
+			ArrayList<SealedObject> requests = new ArrayList<SealedObject>();
 			// costruisci l'rray di richieste
 			int numRequest = 10;
+			Richiesta r = null;
+			
+			
 			String testDoc = "Questa stringa vuole essere un documento del quale si richede una marca temporale!";
 			MessageDigest md;
 			try {
 				md = MessageDigest.getInstance(DUMMY_HASH_ALG);
 				byte[] hashTest = md.digest(testDoc.getBytes());
-				requests.add(new Richiesta("UserTest", hashTest));
+				r = new Richiesta("UserTest", hashTest);
+				
+				requests.add(new SealedObject(r,cipher));
 			} catch (NoSuchAlgorithmException e1) {
 				e1.printStackTrace();
 				System.err.println("Errore nel generare prima richiesta!");
+			} catch (IllegalBlockSizeException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
 			}		
 
 			try {
 				for (int i = 1; i<numRequest; i++) {
 					//trova i h random
 					byte[] hash = generateHash();
-					requests.add(new Richiesta("user"+i, hash));
+					r = new Richiesta("user"+i, hash);
+					requests.add(new SealedObject(r,cipher));
 				}
 			} catch (NoSuchAlgorithmException e) {
 				e.printStackTrace();
 				System.err.println("Errore nell'inizializzare il vettore di richieste!");
+			} catch (IllegalBlockSizeException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
 			}
 
 
@@ -91,6 +134,12 @@ public class Simula {
 			} catch (NoSuchAlgorithmException | SignatureException | IOException e) {
 				e.printStackTrace();
 				System.err.println("Errore nelgenerare le marche!");
+			} catch (ClassNotFoundException e) {
+				e.printStackTrace();
+			} catch (IllegalBlockSizeException e) {
+				e.printStackTrace();
+			} catch (BadPaddingException e) {
+				e.printStackTrace();
 			}
 			
 
@@ -150,15 +199,20 @@ public class Simula {
 
 	}
 
-	public static TSA initTSA() throws NoSuchAlgorithmException, IOException, InvalidKeySpecException, InvalidKeyException {
+	public static TSA initTSA() throws NoSuchAlgorithmException, IOException, InvalidKeySpecException, InvalidKeyException, NoSuchPaddingException {
 		File f = new File(FILE_PR_KEY_SIG);
-		PrivateKey privKey;
+		PrivateKey privKeyVer;
+		PrivateKey privKeyCod;
 
 		if(f.exists() && !f.isDirectory()) { 
-			// leggiamo la chiave
+			// leggiamo la chiave di firma 
 			byte[] keyBytes = Files.readAllBytes(Paths.get(FILE_PR_KEY_SIG));
-			KeyFactory kf = KeyFactory.getInstance("DSA");
-			privKey = kf.generatePrivate(new PKCS8EncodedKeySpec(keyBytes));
+			KeyFactory kf = KeyFactory.getInstance(SIGNATURE_ALG);
+			privKeyVer = kf.generatePrivate(new PKCS8EncodedKeySpec(keyBytes));
+			//leggiamo la chiave di cifratura
+			byte[] keyBytesCod = Files.readAllBytes(Paths.get(FILE_PR_KEY_COD));
+			kf = KeyFactory.getInstance(CIPHER_ALG);
+			privKeyCod = kf.generatePrivate(new PKCS8EncodedKeySpec(keyBytesCod));
 		}else {
 			// Genera chiavi cifrario TSA
 			KeyPairGenerator keyGenRSA = KeyPairGenerator.getInstance(CIPHER_ALG);
@@ -191,10 +245,11 @@ public class Simula {
 			fos.flush();
 			fos.close();
 
-			privKey = pairDSA.getPrivate();
+			privKeyVer = pairDSA.getPrivate();
+			privKeyCod = pairRSA.getPrivate();
 		}
 
-		return new TSA(privKey, "SHA1withDSA");
+		return new TSA(privKeyVer, SIGNATURE_MODE,privKeyCod,CIPHER_MODE );
 	}
 
 	public static byte[] generateHash() throws NoSuchAlgorithmException {

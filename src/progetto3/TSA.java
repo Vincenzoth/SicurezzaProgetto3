@@ -19,6 +19,12 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 
+import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.SealedObject;
+
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
@@ -29,16 +35,18 @@ public class TSA {
 	final static String PATH_FILE_MARCHE = PATH + "/data/marche/";
 	final static int TREE_ELEM = 8;
 	final static String DUMMY_HASH_ALG = "SHA-1";
+	final static String CIPHER_MODE = "RSA/CBC/PKCS5Padding"; 
 
 	private long serialNumber;
 	private Signature sig;
 	private String algorithmSignature;
+	private Cipher cipher;
 	// fai un bel Arraylist co sti cosi
 	private ArrayList<byte[]> hashTreeValues;
 	//   | h_12 | h_34 | h_56 | h_78 | h_14 | h_58 | h_18 |
 
 
-	public TSA(PrivateKey keySig, String algorithmSignature) throws NoSuchAlgorithmException, InvalidKeyException {
+	public TSA(PrivateKey keySig, String algorithmSignature, PrivateKey keyCod, String algorithmCipher) throws NoSuchAlgorithmException, InvalidKeyException, NoSuchPaddingException {
 		serialNumber = 0;
 		this.algorithmSignature = algorithmSignature;
 		sig = Signature.getInstance(this.algorithmSignature);
@@ -50,11 +58,20 @@ public class TSA {
 		if(!path.exists()) { 			 
 			path.mkdirs();
 		}
+		cipher = Cipher.getInstance(algorithmCipher);
+		cipher.init( Cipher.DECRYPT_MODE, keyCod);
+		
 	}
 
-	public void generateMarche(ArrayList<Richiesta> requests) throws NoSuchAlgorithmException, SignatureException, IOException{
-		//IN REALTA' LE RICHIESTE DEVONO ARRIVARE CIFRATE
-
+	
+	
+	public  void generateMarche(ArrayList<SealedObject> cipherRequests) throws NoSuchAlgorithmException, SignatureException, IOException, ClassNotFoundException, IllegalBlockSizeException, BadPaddingException{
+		
+		
+		ArrayList<Richiesta> requests = new  ArrayList<Richiesta>();
+		for (SealedObject req : cipherRequests) 
+			requests.add((Richiesta)req.getObject(this.cipher));
+		
 		
 		ArrayList<LinkedInfoUnit> linkedInformation = new ArrayList<LinkedInfoUnit>();
 
