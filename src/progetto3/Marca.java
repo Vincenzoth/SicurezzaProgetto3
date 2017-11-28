@@ -8,13 +8,15 @@ public class Marca {
 	private long timest;
 	private byte[] digest;
 	private ArrayList<LinkedInfoUnit> linkedInformation;
+	private String algorithSignature;
 	
-	public Marca(String idUser, long serialNumber, long timest, byte[] digest, ArrayList<LinkedInfoUnit> linkedInformation) {
+	public Marca(String idUser, long serialNumber, long timest, byte[] digest, ArrayList<LinkedInfoUnit> linkedInformation, String algorithmSignature) {
 		this.idUser = idUser;
 		this.serialNumber = serialNumber;
 		this.timest = timest;
 		this.digest = digest;
 		this.linkedInformation = linkedInformation;	
+		this.algorithSignature = algorithmSignature;
 	}
 	
 	public String getIdUser() {
@@ -41,4 +43,10 @@ public class Marca {
 	public ArrayList<LinkedInfoUnit> getLinkedInformation() {
 		return linkedInformation;
 	}
+
+	public String getAlgorithSignature() {
+		return algorithSignature;
+	}
+	
+	
 }

@@ -53,9 +53,9 @@ public class Validator {
 
 		fis.close();
 
-
+		Marca marca = readMarca(marcaJSON);
 		// Verifica della firma
-		sig = Signature.getInstance("SHA1withDSA"); // se lo prendo dalla marca il tipo di firma?
+		sig = Signature.getInstance(marca.getAlgorithSignature()); // se lo prendo dalla marca il tipo di firma?
 		Boolean verified;
 		sig.initVerify(keySig);
 		sig.update(marcaJSON.getBytes("UTF8"));
@@ -67,7 +67,8 @@ public class Validator {
 		}
 
 
-		Marca marca = readMarca(marcaJSON);
+		
+		
 
 		// calcolo root hash value a partire dal proprio digest
 		byte[] currentDigest = myDigest;
@@ -116,10 +117,10 @@ public class Validator {
 
 		return new Marca(marcaJSON.get("idUser").toString(),
 				(long) marcaJSON.get("serialNumber"),
-				(long) marcaJSON.get("timest"),
+				(long) marcaJSON.get("timestamp"),
 				hexStringToByteArray(marcaJSON.get("digest").toString()),
 				linkedInformation
-				);
+				,marcaJSON.get("algorithmSignature").toString());
 	}
 
 	private byte[] concatenate(byte[] first, byte[] second) {

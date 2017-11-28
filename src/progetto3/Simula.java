@@ -24,7 +24,7 @@ import java.util.ArrayList;
 import org.json.simple.parser.ParseException;
 
 public class Simula {
-	final static boolean simulaTSA = true;
+	final static boolean simulaTSA = false;
 	final static boolean valutaMarca = true;
 
 
@@ -121,9 +121,9 @@ public class Simula {
 						
 				Validator val = new Validator("SHA-256", sigKey);
 
-				String rootHashValue = "c8090cb33bb5507c2dd3424f20920d60255de6b0ef78c3fc07b4a52b4e148286";
+				String rootHashValue = "a4cdfc13d1854ce1863b504dc89cefe8b38e116cffa8d1cc0f1a5784f27accb1";
 
-				if(val.check(PATH+"/data/marche/0_UserTest_27-11-2017_22-24-30-292.txt", hashTest, rootHashValue))
+				if(val.check(PATH+"/data/marche/0_UserTest_28-11-2017_12-29-42-359.txt", hashTest, rootHashValue))
 					System.out.println("Il root Hash Value è valido");
 				else
 					System.out.println("Il root hash value non è valido");
@@ -144,8 +144,7 @@ public class Simula {
 				e.printStackTrace();
 			} catch (MyException e) {
 				e.printStackTrace();
-				System.err.println(e.getMessage());
-				
+				System.err.println(e.getMessage());	
 			}
 		}
 
@@ -195,7 +194,7 @@ public class Simula {
 			privKey = pairDSA.getPrivate();
 		}
 
-		return new TSA(privKey);
+		return new TSA(privKey, "SHA1withDSA");
 	}
 
 	public static byte[] generateHash() throws NoSuchAlgorithmException {
@@ -208,8 +207,4 @@ public class Simula {
 		return digest.digest(inputBytes);
 	}
 
-	public static void verfy(Marca m, byte[] hash, byte[] rootHash)	{
-		// ricalcola il rootHash con hash che calcoli tu
-		// e controlla che questo sia uguale a rootHash pubblicato
-	}
 }

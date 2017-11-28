@@ -32,14 +32,16 @@ public class TSA {
 
 	private long serialNumber;
 	private Signature sig;
+	private String algorithmSignature;
 	// fai un bel Arraylist co sti cosi
 	private ArrayList<byte[]> hashTreeValues;
 	//   | h_12 | h_34 | h_56 | h_78 | h_14 | h_58 | h_18 |
 
 
-	public TSA(PrivateKey keySig) throws NoSuchAlgorithmException, InvalidKeyException {
+	public TSA(PrivateKey keySig, String algorithmSignature) throws NoSuchAlgorithmException, InvalidKeyException {
 		serialNumber = 0;
-		sig = Signature.getInstance("SHA1withDSA");
+		this.algorithmSignature = algorithmSignature;
+		sig = Signature.getInstance(this.algorithmSignature);
 		sig.initSign(keySig);
 
 		hashTreeValues = new ArrayList<byte[]>();
@@ -116,7 +118,7 @@ public class TSA {
 					linkedInformation.add(new LinkedInfoUnit(hashTreeValues.get(4), false));
 				}
 
-				Marca m = new Marca(r.get(i).getIdUser(), serialNumber++, time, r.get(i).getH(), linkedInformation);
+				Marca m = new Marca(r.get(i).getIdUser(), serialNumber++, time, r.get(i).getH(), linkedInformation, this.algorithmSignature);
 				
 				writeMarca(m);
 			}
@@ -200,10 +202,11 @@ public class TSA {
 
 		marca.put("idUser", m.getIdUser());
 		marca.put("serialNumber", m.getSerialNumber());
-		marca.put("timest", m.getTime());
+		marca.put("timestamp", m.getTime());
 		marca.put("time", dateFormatted);
 		marca.put("digest", byteArrayToHexString(m.getDigest()));
 		marca.put("linkedInformation", linkInfo);
+		marca.put("algorithmSignature", this.algorithmSignature );
 
 		// Firma
 		sig.update(marca.toJSONString().getBytes("UTF8"));
