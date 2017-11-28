@@ -23,12 +23,32 @@ public class Validator {
 	private Signature sig;
 	private PublicKey keySig;
 
+	/**
+	 * Costruttore della classe 
+	 * @param hashAlghoritm Tipo da algoritmo utilizzato per l'hash
+	 * @param keySig chiave pubblica  per la firma 
+	 * @throws NoSuchAlgorithmException
+	 */
 	public Validator(String hashAlghoritm, PublicKey keySig) throws NoSuchAlgorithmException {
 		this.md = MessageDigest.getInstance(hashAlghoritm);
 		this.keySig = keySig;
 	}
 
 
+	/**
+	 * Metodo per la verifica della marca 
+	 * @param marcaPath percorso del file che continene la marca
+	 * @param myDigest digest usato  per il  calcolo del root hash value 
+	 * @param rootHashValue root hash value noto usato per la verifica 
+	 * @return
+	 * @throws FileNotFoundException
+	 * @throws IOException
+	 * @throws ParseException
+	 * @throws NoSuchAlgorithmException
+	 * @throws InvalidKeyException
+	 * @throws SignatureException
+	 * @throws MyException
+	 */
 	public boolean check(String marcaPath, byte[] myDigest, String rootHashValue) throws FileNotFoundException, IOException, ParseException, NoSuchAlgorithmException, InvalidKeyException, SignatureException, MyException {
 		boolean returnValue;
 
@@ -100,6 +120,15 @@ public class Validator {
 		return returnValue;
 	}
 
+	/**
+	 * Metodo che legge e restituisce la marca temporale a partire dalla struttura dati 
+	 * in JSON contenuta nel file 
+	 * @param marcaString
+	 * @return
+	 * @throws FileNotFoundException
+	 * @throws IOException
+	 * @throws ParseException
+	 */
 	private Marca readMarca(String marcaString) throws FileNotFoundException, IOException, ParseException {
 		JSONParser parser = new JSONParser();
 		JSONObject marcaJSON = (JSONObject) parser.parse(marcaString);
@@ -123,6 +152,12 @@ public class Validator {
 				,marcaJSON.get("algorithmSignature").toString());
 	}
 
+	/**
+	 * Metodo di supporto che concatena due array di byte 
+	 * @param first primo array di byte 
+	 * @param second secondo array di byte
+	 * @return
+	 */
 	private byte[] concatenate(byte[] first, byte[] second) {
 		byte[] full = new byte[first.length + second.length];
 		System.arraycopy(first, 0, full, 0, first.length);

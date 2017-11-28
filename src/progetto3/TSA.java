@@ -46,6 +46,16 @@ public class TSA {
 	//   | h_12 | h_34 | h_56 | h_78 | h_14 | h_58 | h_18 |
 
 
+	/**
+	 * Costruttore della classe 
+	 * @param keySig chiave per la firma della marca
+	 * @param algorithmSignature tipo di algoritmo utilizzato per la firma della marca
+	 * @param keyCod chiave per decifrare le richieste 
+	 * @param algorithmCipher tipo di algoritmo usato per la decifratura delle richieste 
+	 * @throws NoSuchAlgorithmException
+	 * @throws InvalidKeyException
+	 * @throws NoSuchPaddingException
+	 */
 	public TSA(PrivateKey keySig, String algorithmSignature, PrivateKey keyCod, String algorithmCipher) throws NoSuchAlgorithmException, InvalidKeyException, NoSuchPaddingException {
 		serialNumber = 0;
 		this.algorithmSignature = algorithmSignature;
@@ -64,7 +74,16 @@ public class TSA {
 	}
 
 	
-	
+	/**
+	 * Metodo che genera le marche a partire dalle richieste passate come parametro 
+	 * @param cipherRequests array list che continete le richieste cifrate 
+	 * @throws NoSuchAlgorithmException
+	 * @throws SignatureException
+	 * @throws IOException
+	 * @throws ClassNotFoundException
+	 * @throws IllegalBlockSizeException
+	 * @throws BadPaddingException
+	 */
 	public  void generateMarche(ArrayList<SealedObject> cipherRequests) throws NoSuchAlgorithmException, SignatureException, IOException, ClassNotFoundException, IllegalBlockSizeException, BadPaddingException{
 		
 		
@@ -156,12 +175,23 @@ public class TSA {
 		return digest.digest(inputBytes);
 	}
 
+	/**
+	 * Metodo di supporto per convertire un long in un array di byte
+	 * @param n long da convertire 
+	 * @return long convertito in array di byte
+	 */
 	private byte[] longToBytes(long n) {
 		ByteBuffer buffer = ByteBuffer.allocate(Long.BYTES);
 		buffer.putLong(n);
 		return buffer.array();
 	}
 
+	/**
+	 * Metdodo che crea il Merkel tree a partire dalle otto richieste passata come parametro 
+	 * @param requests array list di richieste (otto richieste)
+	 * @return ritorna il root hash value
+	 * @throws NoSuchAlgorithmException
+	 */
 	private byte[] computeTree(ArrayList<Richiesta> requests) throws NoSuchAlgorithmException {
 		if(!hashTreeValues.isEmpty())
 			hashTreeValues.clear();
@@ -186,6 +216,12 @@ public class TSA {
 
 	}
 
+	/**
+	 * Metodo di supporto per concatenare due array di byte 
+	 * @param first primo array di byte 
+	 * @param second sencondo array di byte 
+	 * @return
+	 */
 	private byte[] concatenate(byte[] first, byte[] second) {
 		byte[] full = new byte[first.length + second.length];
 		System.arraycopy(first, 0, full, 0, first.length);
@@ -193,12 +229,22 @@ public class TSA {
 
 		return full;
 	}
-
+	
+	/**
+	 * Metodo di supporto che restituisce la data e l'ora necessaria per la marca temporale
+	 * @return data e ora nel formato definito dalla classe Timestamp
+	 */
 	private long getTime() {
 		java.util.Date date = new java.util.Date();
 		return new Timestamp(date.getTime()).getTime();
 	}
 
+	/**
+	 * Metodo di supporto che scrive la marca temporale generata in un file 
+	 * @param m marca temporale
+	 * @throws IOException
+	 * @throws SignatureException
+	 */
 	@SuppressWarnings("unchecked")
 	private void writeMarca(Marca m) throws IOException, SignatureException {
 		JSONObject marca = new JSONObject();
@@ -236,6 +282,12 @@ public class TSA {
 		writer.close();
 	}
 
+	/**
+	 * Metodo di supporto per la scrittura del Root value nel file  per renderlo pubblico 
+	 * @param time tempo di pubblicazione 
+	 * @param rootHashValue root hash value 
+	 * @throws IOException
+	 */
 	private void writeRootValue(long time, byte[] rootHashValue) throws IOException {
 		// scriviamo il root hash value nel file
 		File rootHashFile = new File(FILE_NAME_ROOTH);
