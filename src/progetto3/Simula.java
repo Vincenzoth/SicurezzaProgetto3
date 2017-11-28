@@ -24,7 +24,7 @@ import java.util.ArrayList;
 import org.json.simple.parser.ParseException;
 
 public class Simula {
-	final static boolean simulaTSA = false;
+	final static boolean simulaTSA = true;
 	final static boolean valutaMarca = true;
 
 
@@ -48,7 +48,6 @@ public class Simula {
 	public static void main(String[] args) {
 		if(simulaTSA) {
 			TSA myTSA = null;
-			ArrayList<Marca> marche = null;
 
 			try {
 				myTSA = initTSA();
@@ -87,13 +86,13 @@ public class Simula {
 
 
 			try {
-				marche = myTSA.generateMarche(requests);
+				myTSA.generateMarche(requests);
 
 			} catch (NoSuchAlgorithmException | SignatureException | IOException e) {
 				e.printStackTrace();
 				System.err.println("Errore nelgenerare le marche!");
 			}
-			marche.get(0);
+			
 
 			System.out.println("Fine simulazione TSA");
 		}

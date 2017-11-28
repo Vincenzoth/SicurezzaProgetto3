@@ -50,10 +50,10 @@ public class TSA {
 		}
 	}
 
-	public ArrayList<Marca> generateMarche(ArrayList<Richiesta> requests) throws NoSuchAlgorithmException, SignatureException, IOException{
+	public void generateMarche(ArrayList<Richiesta> requests) throws NoSuchAlgorithmException, SignatureException, IOException{
 		//IN REALTA' LE RICHIESTE DEVONO ARRIVARE CIFRATE
 
-		ArrayList<Marca> marche = new ArrayList<Marca>();
+		
 		ArrayList<LinkedInfoUnit> linkedInformation = new ArrayList<LinkedInfoUnit>();
 
 		// genera a caso un array di byte di grandezza corretta
@@ -117,12 +117,12 @@ public class TSA {
 				}
 
 				Marca m = new Marca(r.get(i).getIdUser(), serialNumber++, time, r.get(i).getH(), linkedInformation);
-				marche.add(m);
+				
 				writeMarca(m);
 			}
 		}
 
-		return marche;
+		
 
 	}
 

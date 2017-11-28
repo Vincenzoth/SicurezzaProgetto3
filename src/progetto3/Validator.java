@@ -87,9 +87,6 @@ public class Validator {
 
 		String computedRootHash = String.format( "%064x", new BigInteger( 1, currentDigest ) );
 
-		System.out.println(computedRootHash);
-
-
 		if(computedRootHash.equals(rootHashValue))
 			returnValue = true;
 		else
