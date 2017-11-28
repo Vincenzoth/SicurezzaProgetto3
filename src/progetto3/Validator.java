@@ -144,6 +144,8 @@ public class Validator {
 				(long) marcaJSON.get("timestamp"),
 				hexStringToByteArray(marcaJSON.get("digest").toString()),
 				marcaJSON.get("rootHashValue").toString(),
+				marcaJSON.get("superHashValue_pre").toString(),
+				marcaJSON.get("superHashValue").toString(),				
 				linkedInformation,
 				marcaJSON.get("algorithmSignature").toString());
 	}

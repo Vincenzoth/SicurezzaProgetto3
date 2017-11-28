@@ -167,7 +167,7 @@ public class Simula {
 						
 				Validator val = new Validator("SHA-256", sigKey);
 
-				if(val.check(PATH+"/data/marche/0_UserTest_28-11-2017_22-13-19-635.txt", hashTest))
+				if(val.check(PATH+"/data/marche/0_UserTest_28-11-2017_23-44-26-936.txt", hashTest))
 					System.out.println("Il root Hash Value è valido");
 				else
 					System.out.println("Il root hash value non è valido");

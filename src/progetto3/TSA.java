@@ -1,9 +1,13 @@
 package progetto3;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.file.Paths;
 import java.security.InvalidKeyException;
@@ -32,14 +36,19 @@ import org.json.simple.JSONObject;
 public class TSA {
 	final static String PATH = Paths.get(System.getProperty("user.dir")).toString();
 	final static String FILE_NAME_ROOTH = PATH + "/data/rootHashValues";
+	final static String FILE_NAME_SUPERH = PATH + "/data/superHashValues";
+	final static String IV = "0000000000000000000000000000000000000000000000000000000000000000";
 	final static String PATH_FILE_MARCHE = PATH + "/data/marche/";
 	final static int TREE_ELEM = 8;
 	final static String DUMMY_HASH_ALG = "SHA-1";
+	final static String TREE_HASH_ALG = "SHA-256";
+	final static String SUPER_HASH_ALG = "SHA-256";
 	final static String CIPHER_MODE = "RSA/CBC/PKCS5Padding"; 
 
 	private long serialNumber;
 	private Signature sig;
 	private String algorithmSignature;
+	private String previusSHV;
 	private Cipher cipher;
 	private ArrayList<byte[]> hashTreeValues;
 	//   | h_12 | h_34 | h_56 | h_78 | h_14 | h_58 | h_18 |
@@ -69,10 +78,10 @@ public class TSA {
 		}
 		cipher = Cipher.getInstance(algorithmCipher);
 		cipher.init( Cipher.DECRYPT_MODE, keyCod);
-		
+
 	}
 
-	
+
 	/**
 	 * Metodo che genera le marche a partire dalle richieste passate come parametro 
 	 * @param cipherRequests array list che continete le richieste cifrate 
@@ -84,12 +93,12 @@ public class TSA {
 	 * @throws BadPaddingException
 	 */
 	public  void generateMarche(ArrayList<SealedObject> cipherRequests) throws NoSuchAlgorithmException, SignatureException, IOException, ClassNotFoundException, IllegalBlockSizeException, BadPaddingException{
-		
+
 		ArrayList<Richiesta> requests = new  ArrayList<Richiesta>();
 		for (SealedObject req : cipherRequests) 
 			requests.add((Richiesta)req.getObject(this.cipher));
-		
-		
+
+
 		ArrayList<LinkedInfoUnit> linkedInformation = new ArrayList<LinkedInfoUnit>();
 
 		// genera a caso un array di byte di grandezza corretta
@@ -118,6 +127,12 @@ public class TSA {
 
 			// pubblica il root value
 			writeRootValue(time, rootHashValue);
+
+			// calcolo SuperHashVAlue
+			byte[] superHashValue = computeSuperHashValue(rootHashValue);
+			
+			// pubblica il root value
+			writeSuperHashValue(superHashValue);
 
 			// creiamo le marche per l'albero
 			for(int i = 0; i<8; i++) {
@@ -152,13 +167,14 @@ public class TSA {
 					linkedInformation.add(new LinkedInfoUnit(hashTreeValues.get(4), false));
 				}
 
-				Marca m = new Marca(r.get(i).getIdUser(), serialNumber++, time, r.get(i).getH(), byteArrayToHexString(rootHashValue), linkedInformation, this.algorithmSignature);
-				
+				Marca m = new Marca(r.get(i).getIdUser(), serialNumber++, time, r.get(i).getH(), 
+						byteArrayToHexString(rootHashValue), previusSHV , byteArrayToHexString(superHashValue) , linkedInformation, this.algorithmSignature);
+
 				writeMarca(m);
 			}
 		}
 
-		
+
 
 	}
 
@@ -194,7 +210,7 @@ public class TSA {
 		if(!hashTreeValues.isEmpty())
 			hashTreeValues.clear();
 
-		MessageDigest md = MessageDigest.getInstance("SHA-256");
+		MessageDigest md = MessageDigest.getInstance(TREE_HASH_ALG);
 
 		for(int i = 0; i < TREE_ELEM; i+=2) {
 			md.update(concatenate(requests.get(i).getH(), requests.get(i+1).getH()));
@@ -214,6 +230,30 @@ public class TSA {
 
 	}
 
+	private byte[] computeSuperHashValue(byte[] rootHashValue) throws NoSuchAlgorithmException, IOException {
+		MessageDigest md = MessageDigest.getInstance(SUPER_HASH_ALG);
+
+		// scrivi i file della chiave
+		File superHValue = new File(FILE_NAME_SUPERH);
+		if(!superHValue.exists()) { 
+			// crea il file dei SHV e inizializzalo con IV
+			//File rootHashFile = new File(FILE_NAME_ROOTH);
+			FileWriter writer = new FileWriter (superHValue);
+			writer.write(IV);
+			writer.close();
+
+			previusSHV = IV;
+		}else {
+			//Leggi l'ultimo SHV - è quello in testa al file
+			BufferedReader br = new BufferedReader(new FileReader(superHValue));
+			previusSHV = br.readLine();
+			br.close();
+		}
+
+		md.update(concatenate(hexStringToByteArray(previusSHV), rootHashValue));
+		return md.digest();
+	}
+
 	/**
 	 * Metodo di supporto per concatenare due array di byte 
 	 * @param first primo array di byte 
@@ -227,7 +267,7 @@ public class TSA {
 
 		return full;
 	}
-	
+
 	/**
 	 * Metodo di supporto che restituisce la data e l'ora necessaria per la marca temporale
 	 * @return data e ora nel formato definito dalla classe Timestamp
@@ -266,6 +306,8 @@ public class TSA {
 		marca.put("timestamp", m.getTime());
 		marca.put("time", dateFormatted);
 		marca.put("rootHashValue", m.getRootHashValue());
+		marca.put("superHashValue_pre", m.getSuperHV_prev());
+		marca.put("superHashValue", m.getSuperHV());
 		marca.put("digest", byteArrayToHexString(m.getDigest()));
 		marca.put("linkedInformation", linkInfo);
 		marca.put("algorithmSignature", this.algorithmSignature );
@@ -282,7 +324,7 @@ public class TSA {
 	}
 
 	/**
-	 * Metodo di supporto per la scrittura del Root value nel file  per renderlo pubblico 
+	 * Metodo per la scrittura del Root value nel file  per renderlo pubblico 
 	 * @param time tempo di pubblicazione 
 	 * @param rootHashValue root hash value 
 	 * @throws IOException
@@ -306,6 +348,20 @@ public class TSA {
 		writer.flush();
 		writer.close();
 	}
+	
+	/**
+	 * Metodo per la scrittura del SUper Hash value nel file  per renderlo pubblico 
+	 * @param superHashValue super hash value 
+	 * @throws IOException
+	 */
+	private void writeSuperHashValue(byte[] superHashValue) throws IOException {
+		File superHashFile = new File(FILE_NAME_SUPERH);
+		FileWriter writer = new FileWriter (superHashFile, true);
+		writer.write("\n");
+		writer.write(byteArrayToHexString(superHashValue));
+		writer.flush();
+		writer.close();
+	}
 
 	private String byteArrayToHexString(byte[] arrayBytes) {
 		StringBuffer stringBuffer = new StringBuffer();
@@ -314,5 +370,15 @@ public class TSA {
 					.substring(1));
 		}
 		return stringBuffer.toString();
+	}
+
+	private byte[] hexStringToByteArray(String s) {
+		int len = s.length();
+		byte[] data = new byte[len / 2];
+		for (int i = 0; i < len; i += 2) {
+			data[i / 2] = (byte) ((Character.digit(s.charAt(i), 16) << 4)
+					+ Character.digit(s.charAt(i+1), 16));
+		}
+		return data;
 	}
 }
