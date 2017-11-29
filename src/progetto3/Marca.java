@@ -13,6 +13,8 @@ public class Marca {
 	private String superHV;
 	private ArrayList<LinkedInfoUnit> linkedInformation;
 	private String algorithSignature;
+	private String algorithmHashTree;
+	private String algorithHashSuper;
 	
 	/**
 	 * Costruttore della classe 
@@ -22,8 +24,10 @@ public class Marca {
 	 * @param digest il digest calcolato dalla TSA partendo da quello fornito dal richiedente
 	 * @param linkedInformation
 	 * @param algorithmSignature tipo di algoritmo di firma della marca temporale 
+	 * @param algorithmHashTree tipo di algoritmo della funzione hash per il Merkle tree
+	 * @param algorithmHashSuper tipo di algoritmo della funzione hash per il Super Hash
 	 */
-	public Marca(String idUser, long serialNumber, long timest, byte[] digest, String rootHashValue, String SHV_pre, String SHV, ArrayList<LinkedInfoUnit> linkedInformation, String algorithmSignature) {
+	public Marca(String idUser, long serialNumber, long timest, byte[] digest, String rootHashValue, String SHV_pre, String SHV, ArrayList<LinkedInfoUnit> linkedInformation, String algorithmSignature, String algorithmHashTree, String algorithmHashSuper) {
 		this.idUser = idUser;
 		this.serialNumber = serialNumber;
 		this.timest = timest;
@@ -33,6 +37,8 @@ public class Marca {
 		this.superHV = SHV;
 		this.linkedInformation = linkedInformation;	
 		this.algorithSignature = algorithmSignature;
+		this.algorithmHashTree = algorithmHashTree;
+		this.algorithHashSuper = algorithmHashSuper;
 	}
 	
 	
@@ -118,6 +124,22 @@ public class Marca {
 	 */
 	public String getSuperHV() {
 		return superHV;
+	}
+
+	/**
+	 * Il metodo restituisce l'algoritmo utilizzato per le funzioni hash del Merkle tree
+	 * @return l'algoritmo utilizzato per le funzioni hash del Merkle tree
+	 */
+	public String getAlgorithmHashTree() {
+		return algorithmHashTree;
+	}
+
+	/**
+	 * Il metodo restituisce l'algoritmo utilizzato per calcolare il super Hash value
+	 * @return l'algoritmo utilizzato per calcolare il super Hash value
+	 */
+	public String getAlgorithHashSuper() {
+		return algorithHashSuper;
 	}
 	
 	

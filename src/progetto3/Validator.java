@@ -32,9 +32,7 @@ public class Validator {
 	 * @param keySig chiave pubblica  per la firma 
 	 * @throws NoSuchAlgorithmException
 	 */
-	public Validator(String hashAlghoritmRoot, String hashAlghoritmSuper, PublicKey keySig) throws NoSuchAlgorithmException {
-		this.mdRoot = MessageDigest.getInstance(hashAlghoritmRoot);
-		this.mdSuper = MessageDigest.getInstance(hashAlghoritmSuper);
+	public Validator(PublicKey keySig) throws NoSuchAlgorithmException {
 		this.keySig = keySig;
 	}
 
@@ -90,7 +88,7 @@ public class Validator {
 			verified = false;
 		}
 
-
+		this.mdRoot = MessageDigest.getInstance(marca.getAlgorithmHashTree());
 		// calcolo root hash value a partire dal proprio digest
 		byte[] currentDigest = myDigest;
 
@@ -124,8 +122,9 @@ public class Validator {
 	}
 
 	/**
+	 * IL metodo valuta la validità del super hash value della marca temporale passata come parametro
 	 * 
-	 * @param marcaPath
+	 * @param marcaPath path del file della marca temporale da validare
 	 * @return
 	 * @throws IOException
 	 * @throws ParseException
@@ -135,7 +134,6 @@ public class Validator {
 	 * @throws MyException
 	 */
 	public boolean checkSuperHash(String marcaPath) throws IOException, ParseException, NoSuchAlgorithmException, InvalidKeyException, SignatureException, MyException {
-
 		// leggere la marca dal file
 		FileInputStream fis = new FileInputStream(new File(marcaPath));
 		byte[] signatureBytes;
@@ -156,7 +154,7 @@ public class Validator {
 		}
 
 		fis.close();
-		
+
 		Marca marca = readMarca(marcaJSON);
 		sig = Signature.getInstance(marca.getAlgorithSignature());
 		Boolean verified;
@@ -169,72 +167,112 @@ public class Validator {
 			verified = false;
 		}
 		
-		
+		this.mdSuper = MessageDigest.getInstance(marca.getAlgorithHashSuper());
+
+
 		mdSuper.update(concatenate(
-						hexStringToByteArray(marca.getSuperHV_prev()),
-						hexStringToByteArray(marca.getRootHashValue()))
+				hexStringToByteArray(marca.getSuperHV_prev()),
+				hexStringToByteArray(marca.getRootHashValue()))
 				);
 		byte[] computedSHV = mdSuper.digest();
-		
+
 		boolean returnValue = byteArrayToHexString(computedSHV).equals(marca.getSuperHV());
-		
+
 		if(!verified) {
 			String mesg = returnValue ? "Firma Non valida!  Super Hash Value valido!" : "Firma Non valida!  Super Hash Value NON valido!";
 			throw new MyException(mesg);
 		}
-		
+
 		return returnValue;
 	}
-	
+
 	/**
+	 * Il metodo valuta la validità della catena di superHash value, e valuta se la marca passata come parametro appartiene alla catena
 	 * 
-	 * @param pathFileRootHashValue
-	 * @param pathFileSuperHashValue
+	 * @param marcaPath path del file della marca da testare
+	 * @param pathFileRootHashValue path del file dei Root HAsh Values
+	 * @param pathFileSuperHashValue path del file dei Super HAsh Values
 	 * @return
 	 * @throws IOException
 	 * @throws MyException
+	 * @throws ParseException 
+	 * @throws NoSuchAlgorithmException 
 	 */
-	public boolean checkSuperHashList(String pathFileRootHashValue, String pathFileSuperHashValue) throws IOException, MyException {
+	public boolean checkSuperHashList(String marcaPath, String pathFileRootHashValue, String pathFileSuperHashValue) throws IOException, MyException, ParseException, NoSuchAlgorithmException {
+		// leggere la marca dal file
+		FileInputStream fis = new FileInputStream(new File(marcaPath));
+		byte[] firtBytesSig = new byte[2];
+		fis.read(firtBytesSig);
+		int remainingByte = firtBytesSig[1];
+		byte[] otherBytesSig = new byte[remainingByte];
+		fis.read(otherBytesSig);
+
+		String marcaJSON = "";
+		int content;
+		while ((content = fis.read()) != -1) {
+			marcaJSON = marcaJSON + (char) content;
+		}
+
+		fis.close();
+
+		Marca marca = readMarca(marcaJSON);
+		this.mdSuper = MessageDigest.getInstance(marca.getAlgorithHashSuper());
+
+		// leggi i file pubblici dei SuperHash e dei RootHash
+		boolean rootInChain = false;
 		File fileRHV = new File(pathFileRootHashValue);
 		File fileSHV = new File(pathFileSuperHashValue);
-		
+
 		BufferedReader  readerRHV = new BufferedReader(new FileReader(fileRHV));
 		BufferedReader  readerSHV = new BufferedReader(new FileReader(fileSHV));
-		
+
+		// leggi Super Hash Value Iniziale
+		readerSHV.readLine();
 		String lineSHV_prev = readerSHV.readLine();
+		readerSHV.readLine();
+
 		String lineSHV;
 		String lineRHV;
 		byte[] computedSHV;
 		boolean isHashValid;
-		while((lineSHV = readerSHV.readLine()) != null) {
+		while(readerSHV.readLine() != null) {
+			lineSHV = readerSHV.readLine();
+			readerSHV.readLine();
+
 			readerRHV.readLine();
 			lineRHV = readerRHV.readLine();
 			readerRHV.readLine();
-			
+
 			//Valutare bontà catena
 			mdSuper.update(concatenate(
 					hexStringToByteArray(lineSHV_prev),
 					hexStringToByteArray(lineRHV))
-			);
+					);
 			computedSHV = mdSuper.digest();
-			
+
 			isHashValid = byteArrayToHexString(computedSHV).equals(lineSHV);
-					
+
 			if(!isHashValid) {
 				readerSHV.close();
 				readerRHV.close();				
 				throw new MyException("La catena di Super Hash Value Non è valida!");
 			}
-			
+
+			// controllo se il RootHAsh della marca è presente nella catena
+			if(lineRHV.equals(marca.getRootHashValue()))
+				rootInChain = true; 
 
 			lineSHV_prev = lineSHV;
 		}
 		readerSHV.close();
 		readerRHV.close();
 		
+		if(!rootInChain)
+			throw new MyException("La catena di Super Hash Value è valida, ma il Root Hash della marca non è contenuto nella catena!!");
+
 		return true;
 	}
-	
+
 	/**
 	 * Metodo che legge e restituisce la marca temporale a partire dalla struttura dati 
 	 * in JSON contenuta nel file 
@@ -265,7 +303,10 @@ public class Validator {
 				marcaJSON.get("superHashValue_pre").toString(),
 				marcaJSON.get("superHashValue").toString(),				
 				linkedInformation,
-				marcaJSON.get("algorithmSignature").toString());
+				marcaJSON.get("algorithmSignature").toString(),
+				marcaJSON.get("algorithmHashTree").toString(),
+				marcaJSON.get("algorithmHashSuper").toString()				
+				);
 	}
 
 	/**
@@ -282,6 +323,11 @@ public class Validator {
 		return full;
 	}
 
+	/**
+	 * Il metodo converte una stringa di valori esadecimali in un array di byte
+	 * @param s Stringa di valori esadecimali
+	 * @return array di byte convertito
+	 */
 	private byte[] hexStringToByteArray(String s) {
 		int len = s.length();
 		byte[] data = new byte[len / 2];
@@ -291,7 +337,12 @@ public class Validator {
 		}
 		return data;
 	}
-	
+
+	/**
+	 * Il metodo converte in un array di byte in una stringa di valori esadecimali
+	 * @param arrayBytes array di byte da convertire
+	 * @return stringa di valori esadecimali
+	 */
 	private String byteArrayToHexString(byte[] arrayBytes) {
 		StringBuffer stringBuffer = new StringBuffer();
 		for (int i = 0; i < arrayBytes.length; i++) {

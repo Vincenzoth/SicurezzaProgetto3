@@ -91,9 +91,9 @@ public class TSA {
 	 */
 	public  void generateMarche(ArrayList<SealedObject> cipherRequests) throws NoSuchAlgorithmException, SignatureException, IOException, ClassNotFoundException, IllegalBlockSizeException, BadPaddingException{
 
-		ArrayList<Richiesta> requests = new  ArrayList<Richiesta>();
+		ArrayList<Request> requests = new  ArrayList<Request>();
 		for (SealedObject req : cipherRequests) 
-			requests.add((Richiesta)req.getObject(this.cipher));
+			requests.add((Request)req.getObject(this.cipher));
 
 
 		ArrayList<LinkedInfoUnit> linkedInformation = new ArrayList<LinkedInfoUnit>();
@@ -105,17 +105,17 @@ public class TSA {
 			// aggiungi nodi fittizi
 			for(int i = remain; i < TREE_ELEM; i++) {
 				byte [] dummyHash = getDummyHash();
-				requests.add(new Richiesta("defUser", dummyHash));
+				requests.add(new Request("defUser", dummyHash));
 			}
 		}
 
-		ArrayList<ArrayList<Richiesta>> splittedRequest = new ArrayList<ArrayList<Richiesta>>();
+		ArrayList<ArrayList<Request>> splittedRequest = new ArrayList<ArrayList<Request>>();
 
 		for(int i = 0; i<requests.size(); i+=8) {
-			splittedRequest.add(new ArrayList<Richiesta> (requests.subList(i, i+8)));
+			splittedRequest.add(new ArrayList<Request> (requests.subList(i, i+8)));
 		}
 
-		for(ArrayList<Richiesta> r : splittedRequest) {
+		for(ArrayList<Request> r : splittedRequest) {
 			// otteniamo il rootHashValue
 			byte[] rootHashValue = computeTree(r);
 
@@ -129,7 +129,7 @@ public class TSA {
 			byte[] superHashValue = computeSuperHashValue(rootHashValue);
 			
 			// pubblica il root value
-			writeSuperHashValue(superHashValue);
+			writeSuperHashValue(time, superHashValue);
 
 			// creiamo le marche per l'albero
 			for(int i = 0; i<8; i++) {
@@ -165,16 +165,18 @@ public class TSA {
 				}
 
 				Marca m = new Marca(r.get(i).getIdUser(), serialNumber++, time, r.get(i).getH(), 
-						byteArrayToHexString(rootHashValue), previusSHV , byteArrayToHexString(superHashValue) , linkedInformation, this.algorithmSignature);
+						byteArrayToHexString(rootHashValue), previusSHV , byteArrayToHexString(superHashValue) , linkedInformation, this.algorithmSignature,TREE_HASH_ALG, SUPER_HASH_ALG);
 
 				writeMarca(m);
 			}
 		}
-
-
-
 	}
 
+	/**
+	 * metodo per generare difest fittizi
+	 * @return
+	 * @throws NoSuchAlgorithmException
+	 */
 	private byte[] getDummyHash() throws NoSuchAlgorithmException {
 		SecureRandom random = new SecureRandom();
 		byte inputBytes[] = new byte[1024];
@@ -217,7 +219,7 @@ public class TSA {
 	 * @return ritorna il root hash value
 	 * @throws NoSuchAlgorithmException
 	 */
-	private byte[] computeTree(ArrayList<Richiesta> requests) throws NoSuchAlgorithmException {
+	private byte[] computeTree(ArrayList<Request> requests) throws NoSuchAlgorithmException {
 		if(!hashTreeValues.isEmpty())
 			hashTreeValues.clear();
 
@@ -257,16 +259,19 @@ public class TSA {
 			// crea il file dei SHV e inizializzalo con IV
 			String IV = byteArrayToHexString(generateIV());
 			FileWriter writer = new FileWriter (superHValue);
+			writer.write("initial Super Hash:\n");
 			writer.write(IV);
+			writer.write("\n\n");
 			writer.close();
 
 			previusSHV = IV;
 		}else {
 			//Leggi l'ultimo SHV - è quello in coda al file
 			BufferedReader br = new BufferedReader(new FileReader(superHValue));
-			String line;
-			while((line = br.readLine()) != null) {
-				previusSHV = line;
+
+			while(br.readLine() != null) {
+				previusSHV = br.readLine();
+				br.readLine();
 			}
 			
 			br.close();
@@ -333,12 +338,14 @@ public class TSA {
 		marca.put("digest", byteArrayToHexString(m.getDigest()));
 		marca.put("linkedInformation", linkInfo);
 		marca.put("algorithmSignature", this.algorithmSignature );
+		marca.put("algorithmHashTree", TREE_HASH_ALG );
+		marca.put("algorithmHashSuper", SUPER_HASH_ALG );
 
 		// Firma
 		sig.update(marca.toJSONString().getBytes("UTF8"));
 		byte[] signat = sig.sign();
 
-		FileOutputStream writer = 	new FileOutputStream(PATH_FILE_MARCHE + m.getSerialNumber() + "_" + m.getIdUser() + "_" + dateFormattedToFile+".txt");   
+		FileOutputStream writer = 	new FileOutputStream(PATH_FILE_MARCHE + m.getSerialNumber() + "_" + m.getIdUser() + "_" + dateFormattedToFile+".tms");   
 		writer.write(signat);
 		writer.write(marca.toJSONString().toString().getBytes());
 		writer.flush();
@@ -376,11 +383,19 @@ public class TSA {
 	 * @param superHashValue super hash value 
 	 * @throws IOException
 	 */
-	private void writeSuperHashValue(byte[] superHashValue) throws IOException {
+	private void writeSuperHashValue(long time, byte[] superHashValue) throws IOException {
 		File superHashFile = new File(FILE_NAME_SUPERH);
 		FileWriter writer = new FileWriter (superHashFile, true);
+		
+		Date date = new Date(time);
+		DateFormat formatter = new SimpleDateFormat("dd/MM/YYYY  -  HH:mm:ss:SSS");
+		String dateFormatted = formatter.format(date);
+
+		writer.write( "Root Hash : " + dateFormatted);
+		
 		writer.write("\n");
 		writer.write(byteArrayToHexString(superHashValue));
+		writer.write("\n\n");
 		writer.flush();
 		writer.close();
 	}

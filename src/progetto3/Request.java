@@ -3,7 +3,7 @@ package progetto3;
 import java.io.Serializable;
 
 
-public class Richiesta implements Serializable {
+public class Request implements Serializable {
 	private String idUser;
 	private byte[] h; 
 	
@@ -12,7 +12,7 @@ public class Richiesta implements Serializable {
 	 * @param idUser Identificativo del mittente 
 	 * @param h contenuto della richiesta in array di byte
 	 */
-	public Richiesta(String idUser, byte[] h) {
+	public Request(String idUser, byte[] h) {
 		this.idUser = idUser;
 		this.h = h;
 	}
