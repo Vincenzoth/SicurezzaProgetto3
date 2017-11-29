@@ -2,12 +2,10 @@ package progetto3;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.file.Paths;
 import java.security.InvalidKeyException;
@@ -37,7 +35,6 @@ public class TSA {
 	final static String PATH = Paths.get(System.getProperty("user.dir")).toString();
 	final static String FILE_NAME_ROOTH = PATH + "/data/rootHashValues";
 	final static String FILE_NAME_SUPERH = PATH + "/data/superHashValues";
-	final static String IV = "0000000000000000000000000000000000000000000000000000000000000000";
 	final static String PATH_FILE_MARCHE = PATH + "/data/marche/";
 	final static int TREE_ELEM = 8;
 	final static String DUMMY_HASH_ALG = "SHA-1";
@@ -179,12 +176,26 @@ public class TSA {
 	}
 
 	private byte[] getDummyHash() throws NoSuchAlgorithmException {
-		// oppure genero direttamente un array di byte casuali?
 		SecureRandom random = new SecureRandom();
 		byte inputBytes[] = new byte[1024];
 		random.nextBytes(inputBytes);
 
 		MessageDigest digest = MessageDigest.getInstance(DUMMY_HASH_ALG);
+
+		return digest.digest(inputBytes);
+	}
+	
+	/**
+	 * Metodo per generare un IV hash per inizializzare la catena di Super Hash Value
+	 * @return
+	 * @throws NoSuchAlgorithmException
+	 */
+	private byte[] generateIV() throws NoSuchAlgorithmException {
+		SecureRandom random = new SecureRandom();
+		byte inputBytes[] = new byte[1024];
+		random.nextBytes(inputBytes);
+
+		MessageDigest digest = MessageDigest.getInstance(SUPER_HASH_ALG);
 
 		return digest.digest(inputBytes);
 	}
@@ -229,7 +240,14 @@ public class TSA {
 		return hashTreeValues.get(6);
 
 	}
-
+	
+	/**
+	 * Metodo che genera il Super Hash Value s partire da un Root Hash
+	 * @param rootHashValue root Hash value
+	 * @return l'array di byte del super hash value
+	 * @throws NoSuchAlgorithmException
+	 * @throws IOException
+	 */
 	private byte[] computeSuperHashValue(byte[] rootHashValue) throws NoSuchAlgorithmException, IOException {
 		MessageDigest md = MessageDigest.getInstance(SUPER_HASH_ALG);
 
@@ -237,7 +255,7 @@ public class TSA {
 		File superHValue = new File(FILE_NAME_SUPERH);
 		if(!superHValue.exists()) { 
 			// crea il file dei SHV e inizializzalo con IV
-			//File rootHashFile = new File(FILE_NAME_ROOTH);
+			String IV = byteArrayToHexString(generateIV());
 			FileWriter writer = new FileWriter (superHValue);
 			writer.write(IV);
 			writer.close();

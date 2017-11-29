@@ -12,6 +12,7 @@ import java.security.PublicKey;
 import java.security.Signature;
 import java.security.SignatureException;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -19,7 +20,8 @@ import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
 public class Validator {
-	private MessageDigest md;
+	private MessageDigest mdRoot;
+	private MessageDigest mdSuper;
 	private Signature sig;
 	private PublicKey keySig;
 
@@ -29,8 +31,9 @@ public class Validator {
 	 * @param keySig chiave pubblica  per la firma 
 	 * @throws NoSuchAlgorithmException
 	 */
-	public Validator(String hashAlghoritm, PublicKey keySig) throws NoSuchAlgorithmException {
-		this.md = MessageDigest.getInstance(hashAlghoritm);
+	public Validator(String hashAlghoritmRoot, String hashAlghoritmSuper, PublicKey keySig) throws NoSuchAlgorithmException {
+		this.mdRoot = MessageDigest.getInstance(hashAlghoritmRoot);
+		this.mdSuper = MessageDigest.getInstance(hashAlghoritmSuper);
 		this.keySig = keySig;
 	}
 
@@ -75,7 +78,7 @@ public class Validator {
 
 		Marca marca = readMarca(marcaJSON);
 		// Verifica della firma
-		sig = Signature.getInstance(marca.getAlgorithSignature()); // se lo prendo dalla marca il tipo di firma?
+		sig = Signature.getInstance(marca.getAlgorithSignature());
 		Boolean verified;
 		sig.initVerify(keySig);
 		sig.update(marcaJSON.getBytes("UTF8"));
@@ -94,13 +97,13 @@ public class Validator {
 
 			if(li.isR()) {
 				// Concatenare a destra
-				md.update(concatenate(currentDigest, li.getH()));
+				mdRoot.update(concatenate(currentDigest, li.getH()));
 			}else {
 				/// Concatenare a sinistra
-				md.update(concatenate(li.getH(),currentDigest));
+				mdRoot.update(concatenate(li.getH(),currentDigest));
 			}
 
-			currentDigest = md.digest();
+			currentDigest = mdRoot.digest();
 		}
 
 		String computedRootHash = String.format( "%064x", new BigInteger( 1, currentDigest ) );
@@ -109,14 +112,68 @@ public class Validator {
 			returnValue = true;
 		else
 			returnValue = false;
-		
-		
-		if(!verified)
-			throw new MyException("Firma non valida!  RoothashValue: " + returnValue);
+
+
+		if(!verified) {
+			String mesg = returnValue ? "Firma Non valida!  Root Hash Value valido!" : "Firma Non valida!  Root Hash Value NON valido!";
+			throw new MyException(mesg);
+		}
 
 		return returnValue;
 	}
 
+	public boolean checkSuperHash(String marcaPath) throws IOException, ParseException, NoSuchAlgorithmException, InvalidKeyException, SignatureException, MyException {
+
+		// leggere la marca dal file
+		FileInputStream fis = new FileInputStream(new File(marcaPath));
+		byte[] signatureBytes;
+		byte[] firtBytesSig = new byte[2];
+		fis.read(firtBytesSig);
+		int remainingByte = firtBytesSig[1];
+		byte[] otherBytesSig = new byte[remainingByte];
+		fis.read(otherBytesSig);
+		signatureBytes = new byte[2 + remainingByte];
+		System.arraycopy(firtBytesSig, 0, signatureBytes, 0, 2);
+		System.arraycopy(otherBytesSig, 0, signatureBytes, 2, remainingByte);
+
+
+		String marcaJSON = "";
+		int content;
+		while ((content = fis.read()) != -1) {
+			marcaJSON = marcaJSON + (char) content;
+		}
+
+		fis.close();
+		
+		Marca marca = readMarca(marcaJSON);
+		sig = Signature.getInstance(marca.getAlgorithSignature());
+		Boolean verified;
+		sig.initVerify(keySig);
+		sig.update(marcaJSON.getBytes("UTF8"));
+
+		try {
+			verified = sig.verify(signatureBytes);
+		} catch (SignatureException e) {
+			verified = false;
+		}
+		
+		
+		mdSuper.update(concatenate(
+						hexStringToByteArray(marca.getSuperHV_prev()),
+						hexStringToByteArray(marca.getRootHashValue()))
+				);
+		byte[] computedSHV = mdSuper.digest();
+		
+		boolean returnValue = byteArrayToHexString(computedSHV).equals(marca.getSuperHV()) ? true : false;
+		
+		if(!verified) {
+			String mesg = returnValue ? "Firma Non valida!  Super Hash Value valido!" : "Firma Non valida!  Super Hash Value NON valido!";
+			throw new MyException(mesg);
+		}
+		
+		return returnValue;
+	}
+	
 	/**
 	 * Metodo che legge e restituisce la marca temporale a partire dalla struttura dati 
 	 * in JSON contenuta nel file 
@@ -172,5 +229,14 @@ public class Validator {
 					+ Character.digit(s.charAt(i+1), 16));
 		}
 		return data;
+	}
+	
+	private String byteArrayToHexString(byte[] arrayBytes) {
+		StringBuffer stringBuffer = new StringBuffer();
+		for (int i = 0; i < arrayBytes.length; i++) {
+			stringBuffer.append(Integer.toString((arrayBytes[i] & 0xff) + 0x100, 16)
+					.substring(1));
+		}
+		return stringBuffer.toString();
 	}
 }

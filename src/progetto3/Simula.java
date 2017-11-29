@@ -33,7 +33,6 @@ public class Simula {
 	final static boolean simulaTSA = false;
 	final static boolean valutaMarca = true;
 
-
 	final static String PATH = Paths.get(System.getProperty("user.dir")).toString();
 
 	final static String DUMMY_HASH_ALG = "SHA-1";
@@ -52,10 +51,8 @@ public class Simula {
 	final static String SIGNATURE_MODE = "SHA256WithDSA"; 
 
 
-
-
 	public static void main(String[] args) {
-		
+
 		if(simulaTSA) {
 			TSA myTSA = null;
 
@@ -65,8 +62,8 @@ public class Simula {
 				e.printStackTrace();
 				System.err.println("Errore nell'inizializzare la TSA!");
 			}
-			
-			
+
+
 			Cipher cipher = null;
 			try {
 				cipher = Cipher.getInstance(CIPHER_MODE);
@@ -89,15 +86,15 @@ public class Simula {
 			// costruisci l'rray di richieste
 			int numRequest = 10;
 			Richiesta r = null;
-			
-			
+
+
 			String testDoc = "Questa stringa vuole essere un documento del quale si richede una marca temporale!";
 			MessageDigest md;
 			try {
 				md = MessageDigest.getInstance(DUMMY_HASH_ALG);
 				byte[] hashTest = md.digest(testDoc.getBytes());
 				r = new Richiesta("UserTest", hashTest);
-				
+
 				requests.add(new SealedObject(r,cipher));
 			} catch (NoSuchAlgorithmException e1) {
 				e1.printStackTrace();
@@ -138,7 +135,7 @@ public class Simula {
 			} catch (BadPaddingException e) {
 				e.printStackTrace();
 			}
-			
+
 
 			System.out.println("Fine simulazione TSA");
 		}
@@ -158,19 +155,32 @@ public class Simula {
 				e1.printStackTrace();
 				System.err.println("Errore nel generare hash del documento!");
 			}
-			
+
 			try {
 				//Leggiamo chiave
 				byte[] keyBytes = Files.readAllBytes(Paths.get(FILE_PUB_KEY_SIG));
 				KeyFactory kf = KeyFactory.getInstance("DSA");
 				PublicKey sigKey = kf.generatePublic(new X509EncodedKeySpec(keyBytes));
-						
-				Validator val = new Validator("SHA-256", sigKey);
 
-				if(val.check(PATH+"/data/marche/0_UserTest_28-11-2017_23-44-26-936.txt", hashTest))
-					System.out.println("Il root Hash Value è valido");
-				else
-					System.out.println("Il root hash value non è valido");
+				Validator val = new Validator("SHA-256", "SHA-256", sigKey);
+
+				try {
+					if(val.check(PATH+"/data/marche/0_UserTest_28-11-2017_23-44-26-936.txt", hashTest))
+						System.out.println("Il root Hash Value è valido");
+					else
+						System.out.println("Il root hash value non è valido");
+				}catch(MyException e) {
+					System.err.println(e.getMessage());
+				}
+				
+				try {
+					if(val.checkSuperHash(PATH+"/data/marche/0_UserTest_28-11-2017_23-44-26-936.txt"))
+						System.out.println("Il Super Hash Value è valido");
+					else
+						System.out.println("Il Super hash value non è valido");
+				} catch (MyException e) {
+					System.err.println(e.getMessage());
+				}
 
 			} catch (NoSuchAlgorithmException e) {
 				e.printStackTrace();
@@ -186,9 +196,6 @@ public class Simula {
 				e.printStackTrace();
 			} catch (SignatureException e) {
 				e.printStackTrace();
-			} catch (MyException e) {
-				e.printStackTrace();
-				System.err.println(e.getMessage());	
 			}
 		}
 
