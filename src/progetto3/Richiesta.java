@@ -5,7 +5,7 @@ import java.io.Serializable;
 
 public class Richiesta implements Serializable {
 	private String idUser;
-	private byte[] h; //cif(h)
+	private byte[] h; 
 	
 	/**
 	 * Costruttore della classe 
@@ -16,11 +16,19 @@ public class Richiesta implements Serializable {
 		this.idUser = idUser;
 		this.h = h;
 	}
-
+	
+	/**
+	 * Metodo che restituisce l'identificativo dell'utente 
+	 * @return
+	 */
 	public String getIdUser() {
 		return idUser;
 	}
 
+	/**
+	 * Metodo che restituisce l'hash value 
+	 * @return hash value
+	 */
 	public byte[] getH() {
 		return h;
 	}
