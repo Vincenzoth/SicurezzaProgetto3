@@ -4,6 +4,11 @@ public class LinkedInfoUnit {
 	private byte[] h;
 	private boolean lr;
 	
+	/**
+	 * Metodo costruttore
+	 * @param h contenuto del nodo del Merkle Tree
+	 * @param lr
+	 */
 	public LinkedInfoUnit(byte[] h, boolean lr) {
 		this.h = h;
 		this.lr = lr; // TRUE = RIGHT
