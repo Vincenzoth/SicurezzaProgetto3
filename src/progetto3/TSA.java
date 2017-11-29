@@ -262,9 +262,13 @@ public class TSA {
 
 			previusSHV = IV;
 		}else {
-			//Leggi l'ultimo SHV - è quello in testa al file
+			//Leggi l'ultimo SHV - è quello in coda al file
 			BufferedReader br = new BufferedReader(new FileReader(superHValue));
-			previusSHV = br.readLine();
+			String line;
+			while((line = br.readLine()) != null) {
+				previusSHV = line;
+			}
+			
 			br.close();
 		}
 

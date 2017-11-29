@@ -1,8 +1,10 @@
 package progetto3;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.security.InvalidKeyException;
@@ -12,7 +14,6 @@ import java.security.PublicKey;
 import java.security.Signature;
 import java.security.SignatureException;
 import java.util.ArrayList;
-import java.util.Arrays;
 
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -52,7 +53,7 @@ public class Validator {
 	 * @throws SignatureException
 	 * @throws MyException
 	 */
-	public boolean check(String marcaPath, byte[] myDigest) throws FileNotFoundException, IOException, ParseException, NoSuchAlgorithmException, InvalidKeyException, SignatureException, MyException {
+	public boolean checkRootHash(String marcaPath, byte[] myDigest) throws FileNotFoundException, IOException, ParseException, NoSuchAlgorithmException, InvalidKeyException, SignatureException, MyException {
 		boolean returnValue;
 
 		// VERIFICARE LA FIRMA
@@ -122,6 +123,17 @@ public class Validator {
 		return returnValue;
 	}
 
+	/**
+	 * 
+	 * @param marcaPath
+	 * @return
+	 * @throws IOException
+	 * @throws ParseException
+	 * @throws NoSuchAlgorithmException
+	 * @throws InvalidKeyException
+	 * @throws SignatureException
+	 * @throws MyException
+	 */
 	public boolean checkSuperHash(String marcaPath) throws IOException, ParseException, NoSuchAlgorithmException, InvalidKeyException, SignatureException, MyException {
 
 		// leggere la marca dal file
@@ -164,7 +176,7 @@ public class Validator {
 				);
 		byte[] computedSHV = mdSuper.digest();
 		
-		boolean returnValue = byteArrayToHexString(computedSHV).equals(marca.getSuperHV()) ? true : false;
+		boolean returnValue = byteArrayToHexString(computedSHV).equals(marca.getSuperHV());
 		
 		if(!verified) {
 			String mesg = returnValue ? "Firma Non valida!  Super Hash Value valido!" : "Firma Non valida!  Super Hash Value NON valido!";
@@ -172,6 +184,55 @@ public class Validator {
 		}
 		
 		return returnValue;
+	}
+	
+	/**
+	 * 
+	 * @param pathFileRootHashValue
+	 * @param pathFileSuperHashValue
+	 * @return
+	 * @throws IOException
+	 * @throws MyException
+	 */
+	public boolean checkSuperHashList(String pathFileRootHashValue, String pathFileSuperHashValue) throws IOException, MyException {
+		File fileRHV = new File(pathFileRootHashValue);
+		File fileSHV = new File(pathFileSuperHashValue);
+		
+		BufferedReader  readerRHV = new BufferedReader(new FileReader(fileRHV));
+		BufferedReader  readerSHV = new BufferedReader(new FileReader(fileSHV));
+		
+		String lineSHV_prev = readerSHV.readLine();
+		String lineSHV;
+		String lineRHV;
+		byte[] computedSHV;
+		boolean isHashValid;
+		while((lineSHV = readerSHV.readLine()) != null) {
+			readerRHV.readLine();
+			lineRHV = readerRHV.readLine();
+			readerRHV.readLine();
+			
+			//Valutare bontà catena
+			mdSuper.update(concatenate(
+					hexStringToByteArray(lineSHV_prev),
+					hexStringToByteArray(lineRHV))
+			);
+			computedSHV = mdSuper.digest();
+			
+			isHashValid = byteArrayToHexString(computedSHV).equals(lineSHV);
+					
+			if(!isHashValid) {
+				readerSHV.close();
+				readerRHV.close();				
+				throw new MyException("La catena di Super Hash Value Non è valida!");
+			}
+			
+
+			lineSHV_prev = lineSHV;
+		}
+		readerSHV.close();
+		readerRHV.close();
+		
+		return true;
 	}
 	
 	/**

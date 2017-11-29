@@ -165,19 +165,25 @@ public class Simula {
 				Validator val = new Validator("SHA-256", "SHA-256", sigKey);
 
 				try {
-					if(val.check(PATH+"/data/marche/0_UserTest_28-11-2017_23-44-26-936.txt", hashTest))
+					if(val.checkRootHash(PATH+"/data/marche/0_UserTest_28-11-2017_23-44-26-936.txt", hashTest))
 						System.out.println("Il root Hash Value è valido");
 					else
 						System.out.println("Il root hash value non è valido");
 				}catch(MyException e) {
 					System.err.println(e.getMessage());
 				}
-				
+
 				try {
 					if(val.checkSuperHash(PATH+"/data/marche/0_UserTest_28-11-2017_23-44-26-936.txt"))
 						System.out.println("Il Super Hash Value è valido");
 					else
 						System.out.println("Il Super hash value non è valido");
+				} catch (MyException e) {
+				}
+
+				try {
+					val.checkSuperHashList(PATH+"/data/rootHashValues", PATH+"/data/superHashValues");
+					System.out.println("La catena dei Super Hash Value è valida!");
 				} catch (MyException e) {
 					System.err.println(e.getMessage());
 				}
