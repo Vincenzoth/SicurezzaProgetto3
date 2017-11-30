@@ -391,7 +391,7 @@ public class TSA {
 		DateFormat formatter = new SimpleDateFormat("dd/MM/YYYY  -  HH:mm:ss:SSS");
 		String dateFormatted = formatter.format(date);
 
-		writer.write( "Root Hash : " + dateFormatted);
+		writer.write( "Super Hash : " + dateFormatted);
 		
 		writer.write("\n");
 		writer.write(byteArrayToHexString(superHashValue));

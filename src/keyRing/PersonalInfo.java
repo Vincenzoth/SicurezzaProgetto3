@@ -14,10 +14,8 @@ public class PersonalInfo implements Serializable{
 	private HashMap<String, PrivateKey> privKeyVer;
 	private HashMap<String, String> sitesPasswords;
 	private HashMap<String, SecretKey> simmetricKeys;
-	// Pubbbbliche????????
 	private DoubleEntryMap<String, String, PublicKey> publicKeys;
 
-	
 	public PersonalInfo() {
 		this.privKeyCod = new HashMap<String,PrivateKey>();
 		this.privKeyVer = new HashMap<String,PrivateKey>();
