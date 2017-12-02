@@ -29,6 +29,11 @@ import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 
+/**
+ * La classe rappresenta un key ring. Permette di aggiungere o rimuovere utenti al sistema,
+ * e permette di ottenere le informazioni private di uno specifico utente. 
+ *
+ */
 public class KeyRing {
 	final static String PATH = Paths.get(System.getProperty("user.dir")).toString();
 	final static String FILE_NAME = PATH + "/data/keyRing.kr";
@@ -74,11 +79,11 @@ public class KeyRing {
 	 * @throws ClassNotFoundException 
 	 * @throws FileNotFoundException 
 	 * @throws InvalidKeyException 
+	 * @throws KeyRingException 
 	 */
-	public KeyRing (String ID, String password) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeySpecException, FileNotFoundException, IOException, ClassNotFoundException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException {
+	public KeyRing (String ID, String password) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeySpecException, FileNotFoundException, IOException, ClassNotFoundException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException, KeyRingException {
 		this.cipher = Cipher.getInstance(CIPHER);
 		this.ID = ID;
-
 
 		// inizializza mappa
 		keys = new HashMap<String,User>();
@@ -90,12 +95,19 @@ public class KeyRing {
 		User us = keys.get(ID);
 
 		// genera la chiave
-		this.key = loadKey(password.toCharArray(), us.getSalt());
-
+		try {
+			this.key = loadKey(password.toCharArray(), us.getSalt());
+		}catch(NullPointerException e) {
+			throw new KeyRingException("Utente "+ID+" non presente nel sistema");
+		}
 		// inizializza cifrario
 		this.cipher.init(Cipher.DECRYPT_MODE, this.key);
 
-		pi = (PersonalInfo) us.getInfo().getObject(this.cipher);
+		try {
+			pi = (PersonalInfo) us.getInfo().getObject(this.cipher);}
+		catch(Exception e) {
+			throw new KeyRingException("Impossibile decifrare le informazioni!");
+		}
 
 	}
 
@@ -107,7 +119,7 @@ public class KeyRing {
 	 * @throws NoSuchAlgorithmException 
 	 * @throws InvalidKeySpecException 
 	 */
-	static private SecretKey loadKey(char[] password, byte[] salt) throws NoSuchAlgorithmException, InvalidKeySpecException{		
+	private SecretKey loadKey(char[] password, byte[] salt) throws NoSuchAlgorithmException, InvalidKeySpecException{		
 		SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
 
 		// Specifica della chiave
@@ -126,6 +138,7 @@ public class KeyRing {
 	 * Se il file delle chiavi è presente, legge le informazioni e le utilizza
 	 * per popolare la mappa degli utenti
 	 */
+	@SuppressWarnings("unchecked")
 	private void loadMap() throws InvalidKeyException, FileNotFoundException, IOException, ClassNotFoundException {
 		File f = new File(FILE_NAME);
 		if(f.exists() && !f.isDirectory()) { 
@@ -211,7 +224,7 @@ public class KeyRing {
 	}
 
 	/**
-	 * Il metodo scrive le informazioni sul file.
+	 * Il metodo scrive le informazioni della mappa degli utenti sul file.
 	 * @throws FileNotFoundException
 	 * @throws IOException
 	 */
@@ -246,7 +259,16 @@ public class KeyRing {
 
 
 
-
+	/**
+	 * Il metodo aggiunge una password alle informazioni private dell'utente
+	 * 
+	 * @param idSite
+	 * @param password
+	 * @return
+	 * @throws InvalidKeyException
+	 * @throws IllegalBlockSizeException
+	 * @throws IOException
+	 */
 	public String addSitePasword(String idSite, String password) throws InvalidKeyException, IllegalBlockSizeException, IOException {
 		String returnValue = pi.getSitesPasswords().put(idSite, password);
 
@@ -255,6 +277,16 @@ public class KeyRing {
 		return returnValue;
 	}
 
+	/**
+	 * Il metodo aggiorna la password dell'utente.
+	 * 
+	 * @param idSite
+	 * @param password
+	 * @return
+	 * @throws InvalidKeyException
+	 * @throws IllegalBlockSizeException
+	 * @throws IOException
+	 */
 	public String updateSitePasword(String idSite, String password) throws InvalidKeyException, IllegalBlockSizeException, IOException {
 		String returnValue = pi.getSitesPasswords().replace(idSite, password);
 
@@ -263,14 +295,36 @@ public class KeyRing {
 		return returnValue;
 	}
 
+	/**
+	 * Il metodo recupera la password identificata dal parametro idSite dalle informazioni private dell'utente.
+	 * 
+	 * @param idSite
+	 * @return
+	 */
 	public String getSitePassword(String idSite) {
 		return this.pi.getSitesPasswords().get(idSite);
 	}
 
+	/**
+	 * Il metodo rimuove la password identificata dal parametro idSite dalle informazioni private dell'utente.
+	 * 
+	 * @param idSite
+	 * @return
+	 */
 	public String removeSite(String idSite) {
 		return this.pi.getSitesPasswords().remove(idSite);
 	}
 
+	/**
+	 * Il metodo aggiunge la chiave simmetrica passata come parametro key e identificata dal parametro IdKey alle informazioni private dell'utente.
+	 * 
+	 * @param IdKey
+	 * @param key
+	 * @return
+	 * @throws InvalidKeyException
+	 * @throws IllegalBlockSizeException
+	 * @throws IOException
+	 */
 	public SecretKey addSimmetricKey(String IdKey, SecretKey key) throws InvalidKeyException, IllegalBlockSizeException, IOException {
 		SecretKey returnValue = pi.getSimmetricKeys().put(IdKey, key);
 
@@ -279,6 +333,16 @@ public class KeyRing {
 		return returnValue;
 	}
 
+	/**
+	 * Il metodo aggiorna la chiave simmetricaidentificata dal parametro IdKey con la nuova chiave passata come parametro newKey.
+	 * 
+	 * @param IdKey
+	 * @param newKey
+	 * @return
+	 * @throws InvalidKeyException
+	 * @throws IllegalBlockSizeException
+	 * @throws IOException
+	 */
 	public SecretKey updateSimmetricKey(String IdKey, SecretKey newKey) throws InvalidKeyException, IllegalBlockSizeException, IOException {
 		SecretKey returnValue = pi.getSimmetricKeys().replace(IdKey, newKey);
 
@@ -287,15 +351,36 @@ public class KeyRing {
 		return returnValue;
 	}
 
+	/**
+	 * Il metodo restituisce la chiave simmetrica identificata dal parametro IdKey
+	 * 
+	 * @param IdKey
+	 * @return
+	 */
 	public SecretKey getSimmetricKey(String IdKey) {
 		return pi.getSimmetricKeys().get(IdKey);
 	}
 
+	/**
+	 * Il metodo rimuove la chiave simmetrica identificata dal parametro IdKey
+	 * 
+	 * @param IdKey
+	 * @return
+	 */
 	public SecretKey removeSimmetricKey(String IdKey) {
 		return pi.getSimmetricKeys().remove(IdKey);
 	}
 
-
+	/**
+	 * Il metodo aggiunge la chiave privata di codifica passata come parametro key e identificata dal parametro IdKey alle informazioni private dell'utente.
+	 * 
+	 * @param IdKey
+	 * @param key
+	 * @return
+	 * @throws InvalidKeyException
+	 * @throws IllegalBlockSizeException
+	 * @throws IOException
+	 */
 	public PrivateKey addPrivateKeyCod(String IdKey, PrivateKey key) throws InvalidKeyException, IllegalBlockSizeException, IOException {
 		PrivateKey returnValue = pi.getPrivKeyCod().put(IdKey, key);
 
@@ -304,6 +389,16 @@ public class KeyRing {
 		return returnValue;
 	}
 
+	/**
+	 * Il metodo aggiorna la chiave privata di codifica identificata dal parametro IdKey con la nuova chiave passata come parametro newKey.
+	 * 
+	 * @param IdKey
+	 * @param newKey
+	 * @return
+	 * @throws InvalidKeyException
+	 * @throws IllegalBlockSizeException
+	 * @throws IOException
+	 */
 	public PrivateKey updatePrivateKeyCod(String IdKey, PrivateKey newKey) throws InvalidKeyException, IllegalBlockSizeException, IOException {
 		PrivateKey returnValue = pi.getPrivKeyCod().replace(IdKey, newKey);
 
@@ -312,15 +407,36 @@ public class KeyRing {
 		return returnValue;
 	}
 
+	/**
+	 * Il metodo restituisce la chiave privata di codifica identificata dal parametro IdKey.
+	 * 
+	 * @param IdKey
+	 * @return
+	 */
 	public PrivateKey getPrivateKeyCod(String IdKey) {
 		return pi.getPrivKeyCod().get(IdKey);
 	}
 
+	/**
+	 * Il metodo rimuove la chiave privata di codifica identificata dal parametro IdKey.
+	 * 
+	 * @param IdKey
+	 * @return
+	 */
 	public PrivateKey removePrivateKeyCod(String IdKey) {
 		return pi.getPrivKeyCod().remove(IdKey);
 	}
 
-
+	/**
+	 * Il metodo aggiunge la chiave privata di verifica passata come parametro key e identificata dal parametro IdKey alle informazioni private dell'utente.
+	 * 
+	 * @param IdKey
+	 * @param key
+	 * @return
+	 * @throws InvalidKeyException
+	 * @throws IllegalBlockSizeException
+	 * @throws IOException
+	 */
 	public PrivateKey addPrivateKeyVer(String IdKey, PrivateKey key) throws InvalidKeyException, IllegalBlockSizeException, IOException {
 		PrivateKey returnValue = pi.getPrivKeyVer().put(IdKey, key);
 
@@ -329,6 +445,16 @@ public class KeyRing {
 		return returnValue;
 	}
 
+	/**
+	 * Il metodo aggiorna la chiave privata di verifica identificata dal parametro IdKey con la nuova chiave passata come parametro newKey.
+	 * 
+	 * @param IdKey
+	 * @param newKey
+	 * @return
+	 * @throws InvalidKeyException
+	 * @throws IllegalBlockSizeException
+	 * @throws IOException
+	 */
 	public PrivateKey updatePrivateKeyVer(String IdKey, PrivateKey newKey) throws InvalidKeyException, IllegalBlockSizeException, IOException {
 		PrivateKey returnValue = pi.getPrivKeyVer().replace(IdKey, newKey);
 
@@ -337,14 +463,38 @@ public class KeyRing {
 		return returnValue;
 	}
 
+	/**
+	 * Il metodo restituisce la chiave privata di verifica identificata dal parametro IdKey.
+	 * 
+	 * @param IdKey
+	 * @return
+	 */
 	public PrivateKey getPrivateKeyVer(String IdKey) {
 		return pi.getPrivKeyVer().get(IdKey);
 	}
 
+	/**
+	 * Il metodo rimuove la chiave privata di verifica identificata dal parametro IdKey.
+	 * 
+	 * @param IdKey
+	 * @return
+	 */
 	public PrivateKey removePrivateKeyVer(String IdKey) {
 		return pi.getPrivKeyVer().remove(IdKey);
 	}
 
+	/**
+	 * Il metodo aggiunge la chiave pubblica passata come parametro key e identificata dal parametro IdKey 
+	 * appartenente all'utente identificato dal parametro IDuser alle informazioni private dell'utente.
+	 * 
+	 * @param IDuser
+	 * @param IdKey
+	 * @param key
+	 * @return
+	 * @throws InvalidKeyException
+	 * @throws IllegalBlockSizeException
+	 * @throws IOException
+	 */
 	public PublicKey addPublicKey(String IDuser, String IdKey, PublicKey key) throws InvalidKeyException, IllegalBlockSizeException, IOException {
 		PublicKey returnValue = pi.getpublicKeys().put(IDuser, IdKey, key);
 
@@ -352,19 +502,48 @@ public class KeyRing {
 
 		return returnValue;
 	}
-	public PublicKey updatePublicKey(String IDUser, String IdKey, PublicKey newKey) throws InvalidKeyException, IllegalBlockSizeException, IOException {
-		PublicKey returnValue = pi.getpublicKeys().replace(IDUser, IdKey, newKey);
+
+	/**
+	 * Il metodo aggiorna la chiave pubblica identificata dal parametro IdKey appartenente all'utente 
+	 * identificato dal parametro IDuser con la chiave passato come parametro newKey
+	 * 
+	 * @param IDUser
+	 * @param IdKey
+	 * @param newKey
+	 * @return
+	 * @throws InvalidKeyException
+	 * @throws IllegalBlockSizeException
+	 * @throws IOException
+	 */
+	public PublicKey updatePublicKey(String IDuser, String IdKey, PublicKey newKey) throws InvalidKeyException, IllegalBlockSizeException, IOException {
+		PublicKey returnValue = pi.getpublicKeys().replace(IDuser, IdKey, newKey);
 
 		updateFile();
 
 		return returnValue;
 	}
 
-	public PublicKey getPublicKey(String IDUser, String IdKey) {
-		return pi.getpublicKeys().get(IDUser, IdKey);
+	/**
+	 * Il metodo restituisce la chiave pubblica identificata dal parametro IdKey appartenente all'utente 
+	 * identificato dal parametro IDuser.
+	 * 
+	 * @param IDUser
+	 * @param IdKey
+	 * @return
+	 */
+	public PublicKey getPublicKey(String IDuser, String IdKey) {
+		return pi.getpublicKeys().get(IDuser, IdKey);
 	}
 
-	public PublicKey removePublicKey(String Iduser, String IdKey) {
-		return pi.getpublicKeys().remove(Iduser, IdKey);
+	/**
+	 * Il metodo rimuove la chiave pubblica identificata dal parametro IdKey appartenente all'utente 
+	 * identificato dal parametro IDuser.
+	 * 
+	 * @param IDuser
+	 * @param IdKey
+	 * @return
+	 */
+	public PublicKey removePublicKey(String IDuser, String IdKey) {
+		return pi.getpublicKeys().remove(IDuser, IdKey);
 	}
 }

@@ -6,7 +6,10 @@ import java.security.PublicKey;
 import java.util.HashMap;
 
 import javax.crypto.SecretKey;
-
+/**
+ * la classe permette di rappresentare le informazioni private di un utente.
+ *
+ */
 public class PersonalInfo implements Serializable{
 	private static final long serialVersionUID = 2L;
 
@@ -27,7 +30,6 @@ public class PersonalInfo implements Serializable{
 	public HashMap<String,PrivateKey> getPrivKeyCod() {
 		return privKeyCod;
 	}
-	
 	public HashMap<String,PrivateKey> getPrivKeyVer() {
 		return privKeyVer;
 	}
@@ -37,7 +39,6 @@ public class PersonalInfo implements Serializable{
 	public HashMap<String, SecretKey> getSimmetricKeys() {
 		return simmetricKeys;
 	}
-	
 	public DoubleEntryMap< String, String, PublicKey> getpublicKeys(){
 		return this.publicKeys;
 	}

@@ -3,7 +3,12 @@ package keyRing;
 import java.io.Serializable;
 
 import javax.crypto.SealedObject;
-
+/**
+ * La calsse rappresenta un utente del sistema.
+ * Un utente è identificato da un proprio id ed è caratterizzato da un salt 
+ * e da un insieme di informazioni private cifrate
+ *
+ */
 public class User implements Serializable {
 
 	private static final long serialVersionUID = 1L;

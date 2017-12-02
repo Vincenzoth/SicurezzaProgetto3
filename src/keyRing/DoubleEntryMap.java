@@ -1,8 +1,19 @@
 package keyRing;
 
+import java.io.Serializable;
 import java.util.HashMap;
 
-public class DoubleEntryMap<T, U, A> {
+/**
+ * La classe implementa una mappa a due ingressi:
+ *    <key1, key2, value>
+ *
+ * @param <T>  - tipo del primo identificativo
+ * @param <U>  - tipo del secondo identificativo
+ * @param <A>  - tipo del valore
+ */
+public class DoubleEntryMap<T, U, A> implements Serializable {
+
+	private static final long serialVersionUID = 3L;
 	private HashMap<T, HashMap<U, A>> outMap;
 	
 	
